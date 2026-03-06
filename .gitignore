@@ -1,0 +1,41 @@
+# Dependencies
+**/node_modules
+**/.next
+**/dist
+**/build
+**/out
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.production
+
+# Logs
+**/logs
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+**/prisma/migrations
+**/*.db
+**/*.db-journal
+
+# Python (if any)
+**/__pycache__
+**/*.pyc
+
+# Local config
+.gemini

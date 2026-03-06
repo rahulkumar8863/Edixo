@@ -1,0 +1,51 @@
+{
+    "name": "examprepzone",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev -p 3001",
+        "build": "next build",
+        "start": "next start -p 3001"
+    },
+    "dependencies": {
+        "@dnd-kit/core": "^6.3.1",
+        "@dnd-kit/sortable": "^10.0.0",
+        "@dnd-kit/utilities": "^3.2.2",
+        "@google/generative-ai": "^0.24.1",
+        "@react-pdf/renderer": "^4.3.2",
+        "@supabase/supabase-js": "^2.95.3",
+        "@tailwindcss/typography": "^0.5.19",
+        "@types/papaparse": "^5.5.2",
+        "@types/uuid": "^10.0.0",
+        "clsx": "^2.1.1",
+        "docx": "^9.6.0",
+        "framer-motion": "^12.34.3",
+        "html2canvas": "^1.4.1",
+        "jspdf": "^4.1.0",
+        "jspdf-autotable": "^5.0.7",
+        "konva": "^10.2.0",
+        "lucide-react": "^0.563.0",
+        "mammoth": "^1.11.0",
+        "next": "14.1.0",
+        "papaparse": "^5.5.3",
+        "pdfjs-dist": "^5.4.624",
+        "perfect-freehand": "^1.2.3",
+        "pptxgenjs": "^4.0.1",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-konva": "^18.2.14",
+        "react-markdown": "^10.1.0",
+        "tailwind-merge": "^3.4.0",
+        "uuid": "^13.0.0",
+        "xlsx": "^0.18.5",
+        "zustand": "^5.0.11"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "@types/react": "^18.2.0",
+        "autoprefixer": "^10.4.24",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^3.4.19",
+        "typescript": "^5.0.0"
+    }
+}
