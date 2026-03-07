@@ -45,6 +45,15 @@ import { TopBar } from "@/components/admin/TopBar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
+
 // Mock documents and folders data
 const mockData = {
   folders: [
@@ -349,20 +358,36 @@ export default function PDFExtractPage() {
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
+    setUploadProgress(20);
 
-    // Simulate upload progress
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise((r) => setTimeout(r, 200));
-      setUploadProgress(i);
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+
+      const token = getToken();
+      const res = await fetch(`${API_URL}/upload/pdf`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      if (res.ok) {
+        setUploadProgress(100);
+        toast.success("PDF uploaded successfully! Ready to process.");
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to upload PDF");
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to upload PDF");
+    } finally {
+      setIsUploading(false);
+      setShowUploadModal(false);
+      setUploadDocName("");
+      setUploadFile(null);
+      setUploadProgress(0);
     }
-
-    toast.success("PDF uploaded successfully! Ready to process.");
-    setIsUploading(false);
-    setShowUploadModal(false);
-    setUploadDocName("");
-    setUploadFile(null);
-    setUploadProgress(0);
   };
 
   const handleCreateFolder = () => {

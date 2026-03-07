@@ -20,10 +20,13 @@ export function Navbar() {
             <Link href="/blog" className="text-gray-600 hover:text-primary transition-colors font-medium">
               Blog
             </Link>
-            <Link href="/tools/creator" className="flex items-center gap-1.5 text-gray-600 hover:text-primary transition-colors font-medium">
+            <a href="http://localhost:3003" className="flex items-center gap-1.5 text-gray-600 hover:text-primary transition-colors font-medium">
               <Sparkles className="w-4 h-4 text-primary" />
-              Tools
-            </Link>
+              Mokebook
+            </a>
+            <a href="http://localhost:3002" className="text-gray-600 hover:text-primary transition-colors font-medium">
+              Institute Portal
+            </a>
             {user ? (
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#F9FAFB] border border-[#E5E7EB]">

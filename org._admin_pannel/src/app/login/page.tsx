@@ -64,7 +64,7 @@ export default function OrgAdminLogin() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Organization ID</label>
                             <Input
-                                placeholder="GK-ORG-00001"
+                                placeholder="demo-org"
                                 value={orgId}
                                 onChange={(e) => setOrgId(e.target.value)}
                                 required
@@ -74,7 +74,7 @@ export default function OrgAdminLogin() {
                             <label className="text-sm font-medium">Email address</label>
                             <Input
                                 type="email"
-                                placeholder="admin@demo-coaching.in"
+                                placeholder="orgadmin@eduhub.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -102,7 +102,7 @@ export default function OrgAdminLogin() {
             </Card>
 
             <p className="mt-8 text-sm text-gray-400">
-                Use <span className="font-mono text-gray-500">GK-ORG-00001</span> / <span className="font-mono text-gray-500">admin@demo-coaching.in</span> / <span className="font-mono text-gray-500">DemoOrg@123</span> for demo
+                Use <span className="font-mono text-gray-500">demo-org</span> / <span className="font-mono text-gray-500">orgadmin@eduhub.com</span> / <span className="font-mono text-gray-500">password123</span> for demo
             </p>
         </div>
     );

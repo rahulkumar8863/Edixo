@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -48,14 +48,14 @@ import { QuestionSetExportModal } from "@/components/set-system/QuestionSetExpor
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Mock data with Password
-const mockSets = [
-  { id: "1", name: "JEE Physics — Kinematics Full Set", code: "482931", password: "738291", subject: "Physics", questions: 30, marks: 120, visibility: "public", usedBy: 12, created: "Mar 1, 2026" },
-  { id: "2", name: "NEET Biology Complete", code: "591047", password: "492018", subject: "Biology", questions: 50, marks: 200, visibility: "private", usedBy: 0, created: "Feb 28, 2026" },
-  { id: "3", name: "JEE Mathematics - Calculus", code: "673829", password: "381927", subject: "Mathematics", questions: 25, marks: 100, visibility: "org_only", usedBy: 8, created: "Feb 25, 2026" },
-  { id: "4", name: "UPSC GS Paper 1 Practice", code: "784930", password: "573810", subject: "General Studies", questions: 100, marks: 200, visibility: "public", usedBy: 24, created: "Feb 20, 2026" },
-  { id: "5", name: "GATE CS Previous Year", code: "892018", password: "294738", subject: "Computer Science", questions: 65, marks: 100, visibility: "public", usedBy: 45, created: "Feb 15, 2026" },
-];
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
 
 // Visibility badge component
 function VisibilityBadge({ visibility }: { visibility: string }) {
@@ -74,14 +74,48 @@ export default function QuestionSetsPage() {
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [selectedSets, setSelectedSets] = useState<string[]>([]);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [shareSet, setShareSet] = useState<typeof mockSets[0] | null>(null);
+  const [shareSet, setShareSet] = useState<any | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportSet, setExportSet] = useState<typeof mockSets[0] | null>(null);
+  const [exportSet, setExportSet] = useState<any | null>(null);
 
-  const filteredSets = mockSets.filter(set => {
-    const matchesSearch = set.name.toLowerCase().includes(search.toLowerCase()) || set.code.toLowerCase().includes(search.toLowerCase());
-    const matchesSubject = subjectFilter === "all" || set.subject.toLowerCase() === subjectFilter;
-    const matchesVisibility = visibilityFilter === "all" || set.visibility === visibilityFilter;
+  const [sets, setSets] = useState<any[]>([]);
+  const [totalSets, setTotalSets] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+
+  const fetchSets = async () => {
+    try {
+      setIsLoading(true);
+      const token = getToken();
+      // Assume default limit of 50 for table display
+      const response = await fetch(`${API_URL}/qbank/sets?page=${page}&limit=50`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (response.ok) {
+        const resData = await response.json();
+        setSets(resData.data?.sets || []);
+        setTotalSets(resData.data?.total || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching sets:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSets();
+  }, [page]);
+
+  const filteredSets = sets.filter(set => {
+    const nameStr = set.name || "";
+    const codeStr = set.setId || "";
+    const matchesSearch = nameStr.toLowerCase().includes(search.toLowerCase()) || codeStr.toLowerCase().includes(search.toLowerCase());
+    // Basic filter assumptions, if subjects are stored or derived differently, handle it gracefully
+    const subjectMatch = set.subject ? set.subject.toLowerCase() : "unknown";
+    const matchesSubject = subjectFilter === "all" || subjectMatch === subjectFilter;
+    const visibilityMatch = set.isGlobal ? "public" : "private";
+    const matchesVisibility = visibilityFilter === "all" || visibilityMatch === visibilityFilter;
     return matchesSearch && matchesSubject && matchesVisibility;
   });
 
@@ -119,19 +153,57 @@ export default function QuestionSetsPage() {
     toast.success(`Creating eBook with ${selectedSets.length} sets`);
   };
 
-  const handleBulkDelete = () => {
-    toast.success(`Deleted ${selectedSets.length} sets`);
-    setSelectedSets([]);
+  const handleBulkDelete = async () => {
+    if (selectedSets.length === 0) return;
+
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/qbank/sets`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ ids: selectedSets }),
+      });
+
+      if (!response.ok) throw new Error("Failed to delete sets");
+
+      toast.success(`Deleted ${selectedSets.length} sets successfully`);
+      setSelectedSets([]);
+      fetchSets(); // refresh data
+    } catch (error: any) {
+      toast.error(error.message || "Error deleting sets");
+    }
+  };
+
+  const handleDeleteSet = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this question set?")) return;
+
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/qbank/sets/${id}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+
+      if (!response.ok) throw new Error("Failed to delete set");
+
+      toast.success("Set deleted successfully");
+      fetchSets(); // refresh data
+    } catch (error: any) {
+      toast.error(error.message || "Error deleting set");
+    }
   };
 
   // Open share modal
-  const openShareModal = (set: typeof mockSets[0]) => {
+  const openShareModal = (set: any) => {
     setShareSet(set);
     setShowShareModal(true);
   };
 
   // Open export modal
-  const openExportModal = (set: typeof mockSets[0]) => {
+  const openExportModal = (set: any) => {
     setExportSet(set);
     setShowExportModal(true);
   };
@@ -167,25 +239,25 @@ export default function QuestionSetsPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-gray-900">156</div>
+                  <div className="text-2xl font-bold text-gray-900">{totalSets}</div>
                   <div className="text-sm text-gray-500">Total Sets</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-emerald-600">89</div>
+                  <div className="text-2xl font-bold text-emerald-600">-</div>
                   <div className="text-sm text-gray-500">Public Sets</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-[#F4511E]">4,521</div>
+                  <div className="text-2xl font-bold text-[#F4511E]">-</div>
                   <div className="text-sm text-gray-500">Total Questions</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-blue-600">328</div>
+                  <div className="text-2xl font-bold text-blue-600">-</div>
                   <div className="text-sm text-gray-500">Times Used</div>
                 </CardContent>
               </Card>
@@ -308,19 +380,19 @@ export default function QuestionSetsPage() {
                           </td>
                           <td className="p-4" onClick={(e) => e.stopPropagation()}>
                             <div className="space-y-1">
-                              <code className="text-xs bg-gray-100 px-2 py-0.5 rounded font-mono block">{set.code}</code>
-                              <code className="text-xs text-gray-500 font-mono block">PWD: {set.password}</code>
+                              <code className="text-xs bg-gray-100 px-2 py-0.5 rounded font-mono block">{set.setId}</code>
+                              <code className="text-xs text-gray-500 font-mono block">PWD: {set.pin}</code>
                             </div>
                           </td>
-                          <td className="p-4 text-gray-600">{set.subject}</td>
+                          <td className="p-4 text-gray-600">{set.subject || "N/A"}</td>
                           <td className="p-4 text-center">
-                            <Badge className="bg-blue-50 text-blue-700">{set.questions}</Badge>
+                            <Badge className="bg-blue-50 text-blue-700">{set._count?.items || set.totalQuestions || 0}</Badge>
                           </td>
                           <td className="p-4 text-center">
-                            <VisibilityBadge visibility={set.visibility} />
+                            <VisibilityBadge visibility={set.isGlobal ? "public" : "private"} />
                           </td>
-                          <td className="p-4 text-center text-gray-600">{set.usedBy}</td>
-                          <td className="p-4 text-gray-500 text-sm">{set.created}</td>
+                          <td className="p-4 text-center text-gray-600">-</td>
+                          <td className="p-4 text-gray-500 text-sm">{new Date(set.createdAt).toLocaleDateString()}</td>
                           <td className="p-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-center">
                               <DropdownMenu>
@@ -346,7 +418,7 @@ export default function QuestionSetsPage() {
                                     <Download className="w-4 h-4 mr-2" />Export
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-red-600">
+                                  <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteSet(set.id)}>
                                     <Trash2 className="w-4 h-4 mr-2" />Delete
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -364,7 +436,7 @@ export default function QuestionSetsPage() {
             {/* Pagination */}
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                Showing {filteredSets.length} of {mockSets.length} sets
+                Showing {filteredSets.length} sets
               </div>
             </div>
           </div>
@@ -376,8 +448,8 @@ export default function QuestionSetsPage() {
         <ShareModal
           open={showShareModal}
           onOpenChange={setShowShareModal}
-          contentId={shareSet.code}
-          contentPassword={shareSet.password}
+          contentId={shareSet.setId}
+          contentPassword={shareSet.pin}
           contentName={shareSet.name}
           contentType="set"
         />
@@ -390,12 +462,12 @@ export default function QuestionSetsPage() {
           onOpenChange={setShowExportModal}
           questionSet={{
             id: exportSet.id,
-            set_code: exportSet.code,
+            set_code: exportSet.setId,
             name: exportSet.name,
-            description: `${exportSet.questions} questions for ${exportSet.subject}`,
-            subject: exportSet.subject,
+            description: `${exportSet._count?.items || 0} questions`,
+            subject: exportSet.subject || "General",
             chapter: "General",
-            questions: Array.from({ length: Math.min(exportSet.questions, 10) }, (_, i) => ({
+            questions: Array.from({ length: Math.min(exportSet._count?.items || 0, 10) }, (_, i) => ({
               id: `Q-${i + 1}`,
               text: `Sample question ${i + 1} from ${exportSet.name}`,
               difficulty: i % 3 === 0 ? "easy" : i % 3 === 1 ? "medium" : "hard",

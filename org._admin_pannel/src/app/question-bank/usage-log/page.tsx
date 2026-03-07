@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   History,
   Search,
@@ -28,24 +28,62 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Mock data
-const mockUsageLog = [
-  { id: "1", question: "Newton's Second Law Application", type: "question", org: "Apex Academy", user: "Rahul Sharma", points: 5, balanceAfter: 1185, usedAt: "Mar 2, 2026 14:32" },
-  { id: "2", question: "JEE Physics Set 1", type: "set", org: "Apex Academy", user: "Rahul Sharma", points: 50, balanceAfter: 1190, usedAt: "Mar 2, 2026 14:28" },
-  { id: "3", question: "Thermodynamics MCQ Collection", type: "set", org: "Brilliant Classes", user: "Priya Singh", points: 100, balanceAfter: 2150, usedAt: "Mar 2, 2026 11:15" },
-  { id: "4", question: "Organic Chemistry Reactions", type: "question", org: "Career Point", user: "Amit Kumar", points: 10, balanceAfter: 890, usedAt: "Mar 1, 2026 16:45" },
-  { id: "5", question: "Calculus Integration Problems", type: "question", org: "Apex Academy", user: "Neha Gupta", points: 8, balanceAfter: 1240, usedAt: "Mar 1, 2026 10:20" },
-  { id: "6", question: "NEET Biology Complete Set", type: "set", org: "Med Academy", user: "Dr. Sharma", points: 200, balanceAfter: 1800, usedAt: "Feb 28, 2026 15:30" },
-  { id: "7", question: "Electromagnetic Induction", type: "question", org: "Brilliant Classes", user: "Priya Singh", points: 5, balanceAfter: 2250, usedAt: "Feb 28, 2026 09:45" },
-  { id: "8", question: "UPSC GS Paper 1 Questions", type: "set", org: "IAS Hub", user: "Vikram Patel", points: 150, balanceAfter: 850, usedAt: "Feb 27, 2026 14:00" },
-];
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
 
 export default function UsageLogPage() {
+  const [logs, setLogs] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalPoints: 0,
+    totalUsage: 0,
+    topOrg: "-",
+    growth: 0,
+    chartData: Array(30).fill(0),
+    topOrgsData: [] as any[]
+  });
 
-  const filteredLogs = mockUsageLog.filter(log => {
-    const matchesSearch = log.question.toLowerCase().includes(search.toLowerCase()) || log.org.toLowerCase().includes(search.toLowerCase());
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = getToken();
+        setIsLoading(true);
+        const res = await fetch(`${API_URL}/qbank/usage-logs`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const { data, statistics } = await res.json();
+          setLogs(data || []);
+          if (statistics) {
+            setStats({
+              totalPoints: statistics.totalPoints || 0,
+              totalUsage: statistics.totalUsage || 0,
+              topOrg: statistics.topOrg || "-",
+              growth: statistics.growth || 0,
+              chartData: statistics.chartData || Array(30).fill(0),
+              topOrgsData: statistics.topOrgsData || []
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const filteredLogs = logs.filter(log => {
+    const matchesSearch = (log.question || "").toLowerCase().includes(search.toLowerCase()) || (log.org || "").toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === "all" || log.type === typeFilter;
     return matchesSearch && matchesType;
   });
@@ -76,7 +114,7 @@ export default function UsageLogPage() {
                     <Coins className="w-6 h-6 text-[#F4511E]" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">48,201</div>
+                    <div className="text-2xl font-bold text-gray-900">{stats.totalPoints.toLocaleString()}</div>
                     <div className="text-sm text-gray-500">Total Points Earned</div>
                   </div>
                 </CardContent>
@@ -87,7 +125,7 @@ export default function UsageLogPage() {
                     <FileText className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">3,842</div>
+                    <div className="text-2xl font-bold text-gray-900">{stats.totalUsage.toLocaleString()}</div>
                     <div className="text-sm text-gray-500">Total Usage Events</div>
                   </div>
                 </CardContent>
@@ -98,7 +136,7 @@ export default function UsageLogPage() {
                     <Building2 className="w-6 h-6 text-purple-600" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">Apex Academy</div>
+                    <div className="text-2xl font-bold text-gray-900 truncate max-w-[120px]">{stats.topOrg}</div>
                     <div className="text-sm text-gray-500">Top Org This Month</div>
                   </div>
                 </CardContent>
@@ -109,7 +147,7 @@ export default function UsageLogPage() {
                     <TrendingUp className="w-6 h-6 text-emerald-600" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">+12.5%</div>
+                    <div className="text-2xl font-bold text-gray-900">{stats.growth >= 0 ? '+' : ''}{stats.growth}%</div>
                     <div className="text-sm text-gray-500">vs Last Month</div>
                   </div>
                 </CardContent>
@@ -135,23 +173,23 @@ export default function UsageLogPage() {
                   <CardTitle className="text-sm font-medium text-gray-500">Top Organizations</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {[
-                    { name: "Apex Academy", points: 1240, bar: 100 },
-                    { name: "Brilliant Classes", points: 980, bar: 79 },
-                    { name: "Career Point", points: 756, bar: 61 },
-                    { name: "Med Academy", points: 542, bar: 44 },
-                    { name: "IAS Hub", points: 428, bar: 35 },
-                  ].map((org, i) => (
-                    <div key={i} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700">{org.name}</span>
-                        <span className="font-medium text-[#F4511E]">{org.points} pts</span>
+                  {stats.topOrgsData.length > 0 ? (
+                    stats.topOrgsData.map((org, i) => (
+                      <div key={i} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-700">{org.name}</span>
+                          <span className="font-medium text-[#F4511E]">{org.points} pts</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-[#F4511E] rounded-full" style={{ width: `${org.bar}%` }} />
+                        </div>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#F4511E] rounded-full" style={{ width: `${org.bar}%` }} />
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-10 text-gray-400 italic text-sm">
+                      No data available
                     </div>
-                  ))}
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -210,30 +248,44 @@ export default function UsageLogPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredLogs.map((log) => (
-                        <tr key={log.id} className="border-b hover:bg-gray-50 transition-colors">
-                          <td className="p-4">
-                            <div className="font-medium text-gray-900 max-w-[250px] truncate">{log.question}</div>
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={7} className="text-center py-20 text-gray-400 italic">
+                            Loading usage logs...
                           </td>
-                          <td className="p-4 text-center">
-                            <Badge className={log.type === "set" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"}>
-                              {log.type}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-700">{log.org}</span>
-                            </div>
-                          </td>
-                          <td className="p-4 text-gray-600">{log.user}</td>
-                          <td className="p-4 text-center">
-                            <span className="font-semibold text-[#F4511E]">-{log.points}</span>
-                          </td>
-                          <td className="p-4 text-center text-gray-600">{log.balanceAfter.toLocaleString()}</td>
-                          <td className="p-4 text-gray-500 text-sm">{log.usedAt}</td>
                         </tr>
-                      ))}
+                      ) : filteredLogs.length > 0 ? (
+                        filteredLogs.map((log) => (
+                          <tr key={log.id} className="border-b hover:bg-gray-50 transition-colors">
+                            <td className="p-4">
+                              <div className="font-medium text-gray-900 max-w-[250px] truncate">{log.question}</div>
+                            </td>
+                            <td className="p-4 text-center">
+                              <Badge className={log.type === "set" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"}>
+                                {log.type}
+                              </Badge>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-700">{log.org}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 text-gray-600">{log.user}</td>
+                            <td className="p-4 text-center">
+                              <span className="font-semibold text-[#F4511E]">-{log.points}</span>
+                            </td>
+                            <td className="p-4 text-center text-gray-600">{(log.balanceAfter || 0).toLocaleString()}</td>
+                            <td className="p-4 text-gray-500 text-sm">{log.usedAt}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="text-center py-20 text-gray-400 italic">
+                            No usage records found.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

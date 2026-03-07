@@ -101,40 +101,57 @@ export default function LoginPage() {
     return () => clearInterval(t);
   }, []);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
     setLoading(true);
     try {
-      if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
-        toast({ title: "Welcome back! 🎉", description: "Redirecting to your dashboard..." });
+      const endpoint = isLogin ? "/auth/login" : "/auth/register";
+      const body: any = { email, password };
+      if (!isLogin) body.name = name;
+
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Set cookie
+        document.cookie = `token=${data.data.accessToken}; path=/; max-age=604800`;
+        toast({
+          title: isLogin ? "Welcome back! 🎉" : "Account created! 🚀",
+          description: isLogin ? "Redirecting to your dashboard..." : "Your learning journey has begun."
+        });
+        router.push("/");
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-        toast({ title: "Account created! 🚀", description: "Your learning journey has begun." });
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: data.error || "Something went wrong. Please try again."
+        });
       }
-      router.push("/");
     } catch (err: any) {
-      const msg = err.code === "auth/wrong-password" ? "Incorrect password."
-        : err.code === "auth/user-not-found" ? "No account found with this email."
-          : err.code === "auth/email-already-in-use" ? "Email is already registered."
-            : err.code === "auth/weak-password" ? "Password must be at least 6 characters."
-              : "Something went wrong. Please try again.";
-      toast({ variant: "destructive", title: "Authentication Error", description: msg });
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Could not connect to the authentication server."
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleGuest = async () => {
-    if (!auth) return;
     setGuestLoading(true);
     try {
-      await signInAnonymously(auth);
+      // For demo mode, we can use a guest login if backend supports it, 
+      // or just redirect if it's a public demo.
       toast({ title: "Demo Mode Active ⚡", description: "Explore Mockbook with sample data!" });
       router.push("/");
-    } catch {
-      toast({ variant: "destructive", title: "Error", description: "Could not enter demo mode." });
     } finally {
       setGuestLoading(false);
     }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Papa from "papaparse";
 import {
   Search,
   Plus,
@@ -25,6 +26,8 @@ import {
   CheckCircle,
   Layers,
   Check,
+  ListFilter,
+  Network,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,116 +69,41 @@ import { toast } from "sonner";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
 
-// Mock questions data with bilingual content
-const questions = [
-  {
-    id: "Q-00001",
-    question_hin: "<p>न्यूटन का कौन सा नियम F = ma बताता है?</p>",
-    question_eng: "<p>Which law states F = ma?</p>",
-    type: "mcq",
-    subject: "Physics",
-    chapter: "Laws of Motion",
-    difficulty: "easy",
-    visibility: "public",
-    pointCost: 5,
-    usageCount: 124,
-    answer: "B",
-    option1_hin: "<p>प्रथम नियम</p>",
-    option1_eng: "<p>First Law</p>",
-    option2_hin: "<p>द्वितीय नियम</p>",
-    option2_eng: "<p>Second Law</p>",
-    option3_hin: "<p>तृतीय नियम</p>",
-    option3_eng: "<p>Third Law</p>",
-    option4_hin: "<p>गुरुत्वाकर्षण नियम</p>",
-    option4_eng: "<p>Law of Gravitation</p>",
-    solution_hin: "<p>न्यूटन का द्वितीय नियम F = ma है, जो बल द्रव्यमान और त्वरण के बीच संबंध बताता है।</p>",
-    solution_eng: "<p>Newton's second law states F = ma, which relates force, mass, and acceleration.</p>",
-  },
-  {
-    id: "Q-00002",
-    question_hin: "<p>ग्लूकोज का मॉलिक्यूलर फॉर्मूला क्या है?</p><p>\(C_6H_{12}O_6\)</p>",
-    question_eng: "<p>What is the molecular formula of Glucose?</p><p>\(C_6H_{12}O_6\)</p>",
-    type: "mcq",
-    subject: "Chemistry",
-    chapter: "Carbohydrates",
-    difficulty: "medium",
-    visibility: "public",
-    pointCost: 8,
-    usageCount: 89,
-    answer: "A",
-    option1_hin: "<p>\(C_6H_{12}O_6\)</p>",
-    option1_eng: "<p>\(C_6H_{12}O_6\)</p>",
-    option2_hin: "<p>\(C_5H_{10}O_5\)</p>",
-    option2_eng: "<p>\(C_5H_{10}O_5\)</p>",
-    option3_hin: "<p>\(C_{12}H_{22}O_{11}\)</p>",
-    option3_eng: "<p>\(C_{12}H_{22}O_{11}\)</p>",
-    option4_hin: "<p>\(C_6H_{10}O_5\)</p>",
-    option4_eng: "<p>\(C_6H_{10}O_5\)</p>",
-    solution_hin: "<p>ग्लूकोज एक हेक्सोज शर्करा है जिसका मॉलिक्यूलर फॉर्मूला \(C_6H_{12}O_6\) है।</p>",
-    solution_eng: "<p>Glucose is a hexose sugar with molecular formula \(C_6H_{12}O_6\).</p>",
-  },
-  {
-    id: "Q-00003",
-    question_hin: "<p>H<sub>2</sub>SO<sub>4</sub> को क्या कहते हैं?</p>",
-    question_eng: "<p>What is H<sub>2</sub>SO<sub>4</sub> called?</p>",
-    type: "mcq",
-    subject: "Chemistry",
-    chapter: "Acids and Bases",
-    difficulty: "easy",
-    visibility: "public",
-    pointCost: 5,
-    usageCount: 156,
-    answer: "C",
-    option1_hin: "<p>हाइड्रोक्लोरिक एसिड</p>",
-    option1_eng: "<p>Hydrochloric Acid</p>",
-    option2_hin: "<p>नाइट्रिक एसिड</p>",
-    option2_eng: "<p>Nitric Acid</p>",
-    option3_hin: "<p>सल्फ्यूरिक एसिड</p>",
-    option3_eng: "<p>Sulfuric Acid</p>",
-    option4_hin: "<p>एसीटिक एसिड</p>",
-    option4_eng: "<p>Acetic Acid</p>",
-    solution_hin: "<p>H<sub>2</sub>SO<sub>4</sub> सल्फ्यूरिक एसिड है, जिसे ऑयल ऑफ विट्रियोल भी कहा जाता है।</p>",
-    solution_eng: "<p>H<sub>2</sub>SO<sub>4</sub> is Sulfuric Acid, also known as Oil of Vitriol.</p>",
-  },
-  {
-    id: "Q-00004",
-    question_hin: "<p>यदि एक वस्तु 45m की ऊंचाई से गिराई जाती है, तो जमीन तक पहुंचने में कितना समय लगेगा? (g=10 m/s²)</p>",
-    question_eng: "<p>If a body is dropped from a height of 45m, find the time taken to reach the ground (g=10 m/s²)</p>",
-    type: "integer",
-    subject: "Physics",
-    chapter: "Kinematics",
-    difficulty: "medium",
-    visibility: "public",
-    pointCost: 8,
-    usageCount: 98,
-    answer: "3",
-    solution_hin: "<p>s = ut + ½gt²</p><p>45 = 0 + ½ × 10 × t²</p><p>t² = 9, t = 3s</p>",
-    solution_eng: "<p>s = ut + ½gt²</p><p>45 = 0 + ½ × 10 × t²</p><p>t² = 9, t = 3s</p>",
-  },
-  {
-    id: "Q-00005",
-    question_hin: "<p>सेल का पावरहाउस किस ऑर्गेनेल को कहा जाता है?</p>",
-    question_eng: "<p>Which organelle is known as the powerhouse of the cell?</p>",
-    type: "mcq",
-    subject: "Biology",
-    chapter: "Cell Structure",
-    difficulty: "easy",
-    visibility: "public",
-    pointCost: 5,
-    usageCount: 203,
-    answer: "B",
-    option1_hin: "<p>राइबोसोम</p>",
-    option1_eng: "<p>Ribosome</p>",
-    option2_hin: "<p>माइटोकॉन्ड्रिया</p>",
-    option2_eng: "<p>Mitochondria</p>",
-    option3_hin: "<p>गॉल्जी बॉडी</p>",
-    option3_eng: "<p>Golgi Body</p>",
-    option4_hin: "<p>एंडोप्लाज्मिक रेटिकुलम</p>",
-    option4_eng: "<p>Endoplasmic Reticulum</p>",
-    solution_hin: "<p>माइटोकॉन्ड्रिया को सेल का पावरहाउस कहा जाता है क्योंकि यह ATP का उत्पादन करता है।</p>",
-    solution_eng: "<p>Mitochondria is called the powerhouse of the cell as it produces ATP.</p>",
-  },
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+const FILTER_FIELDS = [
+  { value: "subjectName", label: "Subject" },
+  { value: "chapterName", label: "Chapter" },
+  { value: "exam", label: "Exam" },
+  { value: "year", label: "Year" },
+  { value: "collection", label: "Collection" },
+  { value: "type", label: "Question Type" },
+  { value: "difficulty", label: "Difficulty" },
+  { value: "pointCost", label: "Points" },
+  { value: "usageCount", label: "Usage Count" },
+  { value: "questionUniqueId", label: "Unique ID" },
+  { value: "isApproved", label: "Is Approved" },
 ];
+
+const FILTER_OPERATORS = [
+  { value: "equals", label: "Equals" },
+  { value: "not_equals", label: "Does not equal" },
+  { value: "contains", label: "Contains" },
+  { value: "doesNotContain", label: "Does not contain" },
+  { value: "startsWith", label: "Starts with" },
+  { value: "endsWith", label: "Ends with" },
+  { value: "isEmpty", label: "Is empty" },
+  { value: "isNotEmpty", label: "Is not empty" },
+];
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
+
+
 
 // Type Badge Component
 function TypeBadge({ type }: { type: string }) {
@@ -226,32 +154,92 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').replace(/\\[()\\[\]]/g, '').slice(0, 80) + '...';
 }
 
-// Mock question sets for Add to Set dialog
-const questionSets = [
-  { id: "1", name: "JEE Physics — Kinematics Full Set", code: "SET-PHY-KIN-001", questions: 30 },
-  { id: "2", name: "NEET Biology Complete", code: "SET-BIO-NEET-001", questions: 50 },
-  { id: "3", name: "JEE Mathematics - Calculus", code: "SET-MATH-CAL-001", questions: 25 },
-  { id: "4", name: "UPSC GS Paper 1 Practice", code: "SET-UPSC-GS-001", questions: 100 },
-  { id: "5", name: "GATE CS Previous Year", code: "SET-GATE-CS-001", questions: 65 },
-];
+
 
 export default function QuestionsListPage() {
   const router = useRouter();
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [questionSets, setQuestionSets] = useState<any[]>([]);
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [visibilityFilter, setVisibilityFilter] = useState("all");
-  const [previewQuestion, setPreviewQuestion] = useState<typeof questions[0] | null>(null);
+  const [scopeFilter, setScopeFilter] = useState("all");
+
+  // Advanced Filters & Grouping state
+  const [filters, setFilters] = useState<Array<{ id: string, field: string, operator: string, value: string }>>([]);
+  const [groupBy, setGroupBy] = useState<string>("none");
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
+
+  const addFilter = () => {
+    setFilters([...filters, { id: Math.random().toString(36).substr(2, 9), field: "subjectName", operator: "equals", value: "" }]);
+  };
+
+  const updateFilter = (id: string, key: string, value: string) => {
+    setFilters(filters.map(f => f.id === id ? { ...f, [key]: value } : f));
+  };
+
+  const removeFilter = (id: string) => {
+    setFilters(filters.filter(f => f.id !== id));
+  };
+
+  const [previewQuestion, setPreviewQuestion] = useState<any | null>(null);
   const [previewLang, setPreviewLang] = useState<"hin" | "eng">("eng");
   const [showAddToSetDialog, setShowAddToSetDialog] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState<string>("");
   const [questionSetSearchQuery, setQuestionSetSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalQuestions, setTotalQuestions] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = getToken();
+        setIsLoading(true);
+        const url = new URL(`${API_URL}/qbank/questions`);
+        if (scopeFilter !== "all") url.searchParams.append("scope", scopeFilter);
+        if (searchQuery) url.searchParams.append("search", searchQuery);
+        if (difficultyFilter !== "all") url.searchParams.append("difficulty", difficultyFilter);
+        if (typeFilter !== "all") url.searchParams.append("type", typeFilter);
+
+        // Add advanced filters and grouping
+        if (filters.length > 0) {
+          url.searchParams.append("filters", JSON.stringify(filters));
+        }
+        if (groupBy !== "none") url.searchParams.append("groupBy", groupBy);
+
+        url.searchParams.append("page", page.toString());
+        url.searchParams.append("limit", "10");
+
+        const [qRes, sRes] = await Promise.all([
+          fetch(url.toString(), { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+          fetch(`${API_URL}/qbank/sets`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+        ]);
+
+        if (qRes.ok) {
+          const qData = await qRes.json();
+          setQuestions(qData.data?.questions || []);
+          setTotalQuestions(qData.data?.total || 0);
+        }
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          setQuestionSets(sData.data?.sets || []);
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [searchQuery, scopeFilter, difficultyFilter, typeFilter, page, filters, groupBy]);
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<Record<string, unknown>[] | null>(null);
+  const [importRows, setImportRows] = useState<any[]>([]);
+  const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [importLoading, setImportLoading] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   const allSelected = selectedQuestions.length === questions.length;
   const someSelected = selectedQuestions.length > 0 && !allSelected;
@@ -277,29 +265,40 @@ export default function QuestionsListPage() {
     setSubjectFilter("all");
     setDifficultyFilter("all");
     setTypeFilter("all");
-    setVisibilityFilter("all");
+    setScopeFilter("all");
+    setFilters([]);
+    setGroupBy("none");
+    setPage(1);
   };
 
-  const hasActiveFilters = searchQuery || subjectFilter !== "all" || difficultyFilter !== "all" || typeFilter !== "all" || visibilityFilter !== "all";
+  const hasActiveFilters = searchQuery || subjectFilter !== "all" || difficultyFilter !== "all" || typeFilter !== "all" || scopeFilter !== "all" || filters.length > 0 || groupBy !== "none";
 
   // Filter questions
-  const filteredQuestions = questions.filter((q) => {
-    const matchesSearch = q.question_hin.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.question_eng.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.chapter.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = subjectFilter === "all" || q.subject === subjectFilter;
-    const matchesDifficulty = difficultyFilter === "all" || q.difficulty === difficultyFilter;
-    const matchesType = typeFilter === "all" || q.type === typeFilter;
-    const matchesVisibility = visibilityFilter === "all" || q.visibility === visibilityFilter;
-    return matchesSearch && matchesSubject && matchesDifficulty && matchesType && matchesVisibility;
-  });
+  const filteredQuestions = questions; // Fetching is already filtered by backend
 
-  // Get unique subjects for filter
-  const subjects = [...new Set(questions.map(q => q.subject))];
+  // Map backend questions to subjects list
+  const subjects = [...new Set(questions.map(q => q.folder?.name || "Uncategorized"))];
+
+  // Grouping logic for Render
+  let renderGroups: { group: string, items: any[] }[] = [];
+  if (groupBy !== "none") {
+    const grouped = filteredQuestions.reduce((acc, q) => {
+      let val = q[groupBy];
+      if (val === null || val === undefined) val = "Uncategorized";
+      if (typeof val === 'boolean') val = val ? "True" : "False";
+      val = String(val);
+
+      if (!acc[val]) acc[val] = [];
+      acc[val].push(q);
+      return acc;
+    }, {} as Record<string, any[]>);
+    renderGroups = Object.keys(grouped).sort().map((k) => ({ group: k, items: grouped[k] }));
+  } else {
+    renderGroups = [{ group: "all", items: filteredQuestions }];
+  }
 
   // Filter question sets
-  const filteredSets = questionSets.filter(set => 
+  const filteredSets = questionSets.filter(set =>
     set.name.toLowerCase().includes(questionSetSearchQuery.toLowerCase()) ||
     set.code.toLowerCase().includes(questionSetSearchQuery.toLowerCase())
   );
@@ -330,49 +329,66 @@ export default function QuestionsListPage() {
 
     setImportFile(file);
 
-    // Parse CSV for preview
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const lines = text.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim());
-      
-      // Parse first 5 rows for preview
-      const previewData = lines.slice(1, 6).map(line => {
-        const values = line.split(',');
-        const row: Record<string, unknown> = {};
-        headers.forEach((header, i) => {
-          row[header] = values[i]?.trim() || '';
-        });
-        return row;
-      }).filter(row => Object.values(row).some(v => v));
-
-      setImportPreview(previewData);
-    };
-    reader.readAsText(file);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        setImportRows(results.data);
+        setImportPreview(results.data.slice(0, 5));
+      },
+      error: (error) => {
+        toast.error(`Error parsing CSV: ${error.message}`);
+      }
+    });
   };
 
   // Handle CSV import
   const handleImport = async () => {
-    if (!importFile) return;
+    if (!importFile || importRows.length === 0) return;
 
     setImportLoading(true);
-    
-    // Simulate import
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast.success(`Successfully imported ${importPreview?.length || 0} questions`);
-    setImportLoading(false);
-    setShowImportDialog(false);
-    setImportFile(null);
-    setImportPreview(null);
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/qbank/bulk-upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          fileName: importFile.name,
+          rows: importRows
+        })
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        toast.success(`Successfully imported ${resData.data.savedCount} questions`);
+        if (resData.data.failedCount > 0) {
+          toast.warning(`${resData.data.failedCount} rows failed to import`);
+        }
+        setShowImportDialog(false);
+        setImportFile(null);
+        setImportPreview(null);
+        setImportRows([]);
+        // Refresh
+        window.location.reload();
+      } else {
+        toast.error(resData.message || "Failed to import questions");
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      toast.error("An error occurred during import");
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   // Download CSV template
   const downloadTemplate = () => {
     const template = `question_eng,question_hin,type,subject,chapter,difficulty,option1_eng,option1_hin,option2_eng,option2_hin,option3_eng,option3_hin,option4_eng,option4_hin,answer,solution_eng,solution_hin
 "Which law states F = ma?","न्यूटन का कौन सा नियम F = ma बताता है?",mcq,Physics,Laws of Motion,easy,"First Law","प्रथम नियम","Second Law","द्वितीय नियम","Third Law","तृतीय नियम","Law of Gravitation","गुरुत्वाकर्षण नियम",B,"Newton's second law states F = ma","न्यूटन का द्वितीय नियम F = ma है"`;
-    
+
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -438,7 +454,7 @@ export default function QuestionsListPage() {
                     <SelectContent>
                       <SelectItem value="all">All Subjects</SelectItem>
                       {subjects.map(s => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                        <SelectItem key={String(s)} value={String(s)}>{String(s)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -465,16 +481,46 @@ export default function QuestionsListPage() {
                       <SelectItem value="true_false">True/False</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-                    <SelectTrigger className="w-[120px] input-field">
-                      <SelectValue placeholder="Visibility" />
+                  <Select value={scopeFilter} onValueChange={setScopeFilter}>
+                    <SelectTrigger className="w-[140px] input-field">
+                      <SelectValue placeholder="Scope" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="public">Public</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
+                      <SelectItem value="all">All Questions</SelectItem>
+                      <SelectItem value="global">Global Bank</SelectItem>
+                      <SelectItem value="mine">Super Admin</SelectItem>
+                      <SelectItem value="public">Other Public</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {/* Group By Dropdown */}
+                  <Select value={groupBy} onValueChange={setGroupBy}>
+                    <SelectTrigger className="w-[150px] input-field bg-brand-primary/5 border-brand-primary/20 text-brand-primary font-medium">
+                      <Network className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Group By" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Grouping</SelectItem>
+                      <SelectItem value="subjectName">Subject</SelectItem>
+                      <SelectItem value="chapterName">Chapter</SelectItem>
+                      <SelectItem value="exam">Exam</SelectItem>
+                      <SelectItem value="year">Year</SelectItem>
+                      <SelectItem value="collection">Collection</SelectItem>
+                      <SelectItem value="type">Question Type</SelectItem>
+                      <SelectItem value="difficulty">Difficulty</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Advanced Filter Button */}
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFilterDialog(true)}
+                    className={`gap-2 ${filters.length > 0 ? 'bg-orange-50 border-orange-200 text-orange-700' : ''}`}
+                  >
+                    <ListFilter className="w-4 h-4" />
+                    Filters {filters.length > 0 && <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center bg-orange-600 rounded-full text-[10px]">{filters.length}</Badge>}
+                  </Button>
+
                   {hasActiveFilters && (
                     <Button variant="ghost" onClick={clearFilters} className="btn-ghost">
                       <X className="w-4 h-4 mr-1" />
@@ -544,80 +590,107 @@ export default function QuestionsListPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredQuestions.map((question) => (
-                      <TableRow
-                        key={question.id}
-                        className={`hover:bg-brand-primary-tint cursor-pointer ${selectedQuestions.includes(question.id) ? 'bg-brand-primary-tint' : ''}`}
-                        onClick={() => { setPreviewQuestion(question); setPreviewLang("eng"); }}
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedQuestions.includes(question.id)}
-                            onCheckedChange={() => toggleSelect(question.id)}
-                            aria-label={`Select question ${question.id}`}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-purple-50 text-purple-600 text-[10px]">
-                              <Languages className="w-3 h-3 mr-1" /> अ/A
-                            </Badge>
-                            <span className="text-sm text-gray-700 line-clamp-2 max-w-[280px]"
-                              dangerouslySetInnerHTML={{ __html: stripHtml(question.question_eng) }}
-                            />
+                    {renderGroups.map((groupObj) => (
+                      <React.Fragment key={groupObj.group}>
+                        {groupBy !== "none" && (
+                          <TableRow className="bg-gray-100/80 hover:bg-gray-100/80">
+                            <TableCell colSpan={9} className="py-2.5">
+                              <div className="flex items-center gap-2 font-semibold text-gray-800">
+                                <span className="bg-white border rounded px-2 py-0.5 text-xs shadow-sm uppercase tracking-wide">
+                                  {groupBy}
+                                </span>
+                                {groupObj.group}
+                                <span className="text-gray-400 text-xs font-normal">({groupObj.items.length})</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {groupObj.items.map((question) => (
+                          <TableRow
+                            key={question.id}
+                            className={`hover:bg-brand-primary-tint cursor-pointer ${selectedQuestions.includes(question.id) ? 'bg-brand-primary-tint' : ''}`}
+                            onClick={() => { setPreviewQuestion(question); setPreviewLang("eng"); }}
+                          >
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={selectedQuestions.includes(question.id)}
+                                onCheckedChange={() => toggleSelect(question.id)}
+                                aria-label={`Select question ${question.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-purple-50 text-purple-600 text-[10px] shrink-0">
+                                  <Languages className="w-3 h-3 mr-1" /> अ/A
+                                </Badge>
+                                <span className="text-sm text-gray-700 line-clamp-2 max-w-[280px]"
+                                  dangerouslySetInnerHTML={{ __html: stripHtml(question.textEn || question.textHi || "") }}
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <TypeBadge type={question.type.toLowerCase()} />
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <span className="text-gray-900">{question.folder?.name || question.subjectName || "Uncategorized"}</span>
+                                {(question.chapterName) && <span className="text-gray-500 block text-xs">↳ {question.chapterName}</span>}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <DifficultyBadge difficulty={question.difficulty.toLowerCase()} />
+                            </TableCell>
+                            <TableCell>
+                              <VisibilityToggle visibility={question.isGlobal ? "global" : (question.isApproved ? "public" : "private")} />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="inline-flex items-center gap-1 text-sm font-semibold text-orange-600">
+                                <Coins className="w-3 h-3" />
+                                {question.pointCost}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center text-sm text-gray-600">
+                              {question.usageCount}
+                            </TableCell>
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => { setPreviewQuestion(question); setPreviewLang("eng"); }}>
+                                    <Eye className="w-4 h-4 mr-2" /> Preview
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => router.push(`/question-bank/questions/${question.id}/edit`)}>
+                                    <Pencil className="w-4 h-4 mr-2" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Copy className="w-4 h-4 mr-2" /> Duplicate
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-red-600">
+                                    <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                    {filteredQuestions.length === 0 && !isLoading && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-12 text-gray-500">
+                          <div className="flex flex-col items-center gap-2">
+                            <Search className="w-8 h-8 text-gray-300 mb-2" />
+                            <p>No questions found matching your filters.</p>
+                            <Button variant="link" onClick={clearFilters}>Clear all filters</Button>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <TypeBadge type={question.type} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <span className="text-gray-900">{question.subject}</span>
-                            <span className="text-gray-400 mx-1">›</span>
-                            <span className="text-gray-500">{question.chapter}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <DifficultyBadge difficulty={question.difficulty} />
-                        </TableCell>
-                        <TableCell>
-                          <VisibilityToggle visibility={question.visibility} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center gap-1 text-sm font-semibold text-orange-600">
-                            <Coins className="w-3 h-3" />
-                            {question.pointCost}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center text-sm text-gray-600">
-                          {question.usageCount}
-                        </TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => { setPreviewQuestion(question); setPreviewLang("eng"); }}>
-                                <Eye className="w-4 h-4 mr-2" /> Preview
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/question-bank/questions/${question.id}/edit`)}>
-                                <Pencil className="w-4 h-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Copy className="w-4 h-4 mr-2" /> Duplicate
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="w-4 h-4 mr-2" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -626,25 +699,19 @@ export default function QuestionsListPage() {
             {/* Pagination */}
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                Showing 1–{filteredQuestions.length} of {questions.length}
+                Showing {totalQuestions === 0 ? 0 : (page - 1) * 10 + 1}–{Math.min(page * 10, totalQuestions)} of {totalQuestions}
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" disabled>
+                <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Prev
                 </Button>
                 <div className="flex items-center gap-1">
                   <Button variant="outline" size="sm" className="w-8 h-8 p-0 bg-[#F4511E] text-white hover:bg-[#E64A19]">
-                    1
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-8 h-8 p-0">
-                    2
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-8 h-8 p-0">
-                    3
+                    {page}
                   </Button>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={page * 10 >= totalQuestions} onClick={() => setPage(page + 1)}>
                   Next
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -675,39 +742,39 @@ export default function QuestionsListPage() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="flex flex-wrap gap-2">
-              <TypeBadge type={previewQuestion?.type || ""} />
-              <DifficultyBadge difficulty={previewQuestion?.difficulty || ""} />
-              <VisibilityToggle visibility={previewQuestion?.visibility || "private"} />
+              <TypeBadge type={previewQuestion?.type?.toLowerCase() || ""} />
+              <DifficultyBadge difficulty={previewQuestion?.difficulty?.toLowerCase() || ""} />
+              <VisibilityToggle visibility={previewQuestion?.isGlobal ? "global" : (previewQuestion?.isApproved ? "public" : "private")} />
             </div>
             <div className="text-sm text-gray-500">
-              {previewQuestion?.subject} › {previewQuestion?.chapter}
+              {previewQuestion?.folder?.name || "Uncategorized"}
             </div>
-            
+
             {/* Question Text */}
             <div className="bg-gray-50 rounded-lg p-4">
-              <div 
+              <div
                 className="text-gray-900 font-medium prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: previewLang === "hin" ? previewQuestion?.question_hin : previewQuestion?.question_eng }}
+                dangerouslySetInnerHTML={{ __html: previewLang === "hin" ? (previewQuestion?.textHi || "") : (previewQuestion?.textEn || "") }}
               />
             </div>
 
             {/* Options */}
-            {previewQuestion?.type === "mcq" && (
+            {previewQuestion?.type?.toLowerCase() === "mcq_single" && previewQuestion.options && (
               <div className="space-y-2">
-                {["A", "B", "C", "D"].map((letter, i) => {
-                  const optKey = `option${i + 1}` as keyof typeof previewQuestion;
-                  const optText = previewQuestion ? (previewLang === "hin" ? previewQuestion[`${optKey}_hin` as keyof typeof previewQuestion] : previewQuestion[`${optKey}_eng` as keyof typeof previewQuestion]) : "";
-                  const isCorrect = previewQuestion?.answer === letter;
+                {previewQuestion.options.map((option: any, i: number) => {
+                  const letter = String.fromCharCode(65 + i);
+                  const optText = previewLang === "hin" ? (option.textHi || "") : (option.textEn || "");
+                  const isCorrect = option.isCorrect;
                   return (
                     <div
-                      key={letter}
+                      key={option.id || i}
                       className={`flex items-center gap-3 p-3 rounded-lg border ${isCorrect ? "border-green-500 bg-green-50" : "border-gray-200"}`}
                     >
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isCorrect ? "bg-green-500 text-white" : "border border-gray-300"}`}>
                         {isCorrect ? <CheckCircle className="w-4 h-4" /> : letter}
                       </div>
                       <span className={isCorrect ? "text-green-700 font-medium" : "text-gray-700"}
-                        dangerouslySetInnerHTML={{ __html: optText as string }}
+                        dangerouslySetInnerHTML={{ __html: optText }}
                       />
                     </div>
                   );
@@ -716,16 +783,16 @@ export default function QuestionsListPage() {
             )}
 
             {/* Integer Answer */}
-            {previewQuestion?.type === "integer" && (
+            {previewQuestion?.type?.toLowerCase() === "integer" && (
               <div className="p-3 bg-green-50 border border-green-500 rounded-lg">
-                <span className="text-green-700 font-medium">Answer: {previewQuestion.answer}</span>
+                <span className="text-green-700 font-medium">Answer: {previewQuestion.answer || "N/A"}</span>
               </div>
             )}
 
             {/* Solution */}
             <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-700 font-medium mb-1">💡 Solution</p>
-              <div 
+              <div
                 className="text-sm prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: previewLang === "hin" ? previewQuestion?.solution_hin : previewQuestion?.solution_eng }}
               />
@@ -761,7 +828,7 @@ export default function QuestionsListPage() {
               Add {selectedQuestions.length} selected questions to an existing question set.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {/* Search */}
             <div className="relative">
@@ -780,19 +847,17 @@ export default function QuestionsListPage() {
                 <button
                   key={set.id}
                   onClick={() => setSelectedSetId(set.id)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all ${
-                    selectedSetId === set.id
-                      ? "border-[#F4511E] bg-orange-50 ring-1 ring-[#F4511E]"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
+                  className={`w-full text-left p-3 rounded-lg border transition-all ${selectedSetId === set.id
+                    ? "border-[#F4511E] bg-orange-50 ring-1 ring-[#F4511E]"
+                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedSetId === set.id
-                          ? "border-[#F4511E] bg-[#F4511E]"
-                          : "border-gray-300"
-                      }`}>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedSetId === set.id
+                        ? "border-[#F4511E] bg-[#F4511E]"
+                        : "border-gray-300"
+                        }`}>
                         {selectedSetId === set.id && <Check className="w-3 h-3 text-white" />}
                       </div>
                       <div>
@@ -965,8 +1030,8 @@ export default function QuestionsListPage() {
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 setShowImportDialog(false);
                 setImportFile(null);
@@ -995,6 +1060,91 @@ export default function QuestionsListPage() {
                   Import Questions
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Advanced Filter Dialog */}
+      <Dialog open={showFilterDialog} onOpenChange={setShowFilterDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ListFilter className="w-5 h-5 text-orange-600" />
+              Advanced Filters
+            </DialogTitle>
+            <DialogDescription>
+              Build complex queries to filter your questions across all available fields.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4 min-h-[30vh]">
+            {filters.length === 0 ? (
+              <div className="text-center py-10 bg-gray-50 border border-dashed rounded-lg">
+                <p className="text-gray-500 mb-4">No filters applied. Add a rule to get started.</p>
+                <Button variant="outline" onClick={addFilter} className="bg-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Filter Rule
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filters.map((filter, index) => (
+                  <div key={filter.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-gray-50 p-3 rounded-lg border">
+                    <span className="text-xs font-semibold text-gray-500 w-12 text-center shrink-0">
+                      {index === 0 ? "WHERE" : "AND"}
+                    </span>
+                    <Select value={filter.field} onValueChange={(val) => updateFilter(filter.id, "field", val)}>
+                      <SelectTrigger className="w-[160px] bg-white">
+                        <SelectValue placeholder="Field" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FILTER_FIELDS.map(f => (
+                          <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={filter.operator} onValueChange={(val) => updateFilter(filter.id, "operator", val)}>
+                      <SelectTrigger className="w-[160px] bg-white">
+                        <SelectValue placeholder="Operator" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FILTER_OPERATORS.map(f => (
+                          <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {!["isEmpty", "isNotEmpty"].includes(filter.operator) ? (
+                      <Input
+                        placeholder="Value..."
+                        value={filter.value}
+                        onChange={(e) => updateFilter(filter.id, "value", e.target.value)}
+                        className="flex-1 bg-white min-w-[120px]"
+                      />
+                    ) : (
+                      <div className="flex-1"></div>
+                    )}
+
+                    <Button variant="ghost" size="icon" onClick={() => removeFilter(filter.id)} className="shrink-0 text-gray-400 hover:text-red-500 hover:bg-red-50">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                <Button variant="ghost" size="sm" onClick={addFilter} className="mt-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add condition
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFilters([])}>Clear</Button>
+            <Button className="bg-[#F4511E] hover:bg-[#E64A19] text-white" onClick={() => setShowFilterDialog(false)}>
+              Apply Filters
             </Button>
           </DialogFooter>
         </DialogContent>

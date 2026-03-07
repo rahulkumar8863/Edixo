@@ -1,8 +1,7 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Copy,
@@ -31,6 +30,7 @@ import {
   CheckCircle,
   XCircle,
   Activity,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+} from "@/components/ui/table";
+import {
+  TableBody as TableBodyStyled,
 } from "@/components/ui/table";
 import {
   DropdownMenu,
@@ -74,72 +77,25 @@ import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
 import { toast } from "sonner";
 
-// Mock organization data
-const orgData = {
-  id: "GK-ORG-00142",
-  name: "Apex Academy",
-  logo: null,
-  domain: "apex-academy.com",
-  email: "contact@apex.com",
-  phone: "+91 98765 43210",
-  address: "123 Education Street, Mumbai, Maharashtra 400001",
-  status: "Active",
-  plan: "Medium",
-  appType: "BOTH",
-  createdAt: "Jan 15, 2026",
-  renewalDate: "Mar 15, 2026",
-  mrr: 15000,
-  totalRevenue: 180000,
-  teachers: 24,
-  students: 1850,
-  activeStudents: 1420,
-  storageUsed: "6.8 GB",
-  storageLimit: "10 GB",
-  aiCreditsUsed: 342,
-  aiCreditsLimit: 500,
-  adminDomain: "admin.apex-academy.com",
-  dnsStatus: "verified",
-  sslStatus: "active",
-};
+// Unique IDs for this org (Placeholder for now)
+const uniqueIDs: any[] = [];
 
-// Unique IDs for this org
-const uniqueIDs = [
-  { id: "GK-TCH-00892", type: "Teacher", name: "Rajesh Kumar", status: "Active", lastUsed: "5 min ago" },
-  { id: "GK-TCH-00256", type: "Teacher", name: "Vikram Singh", status: "Active", lastUsed: "2 hours ago" },
-  { id: "GK-TCH-00389", type: "Teacher", name: "Priya Sharma", status: "Active", lastUsed: "4 hours ago" },
-  { id: "GK-PUB-00123", type: "Public", name: "Demo Session", status: "Active", lastUsed: "1 hour ago" },
-  { id: "GK-TCH-00421", type: "Teacher", name: "Suresh Patel", status: "Suspended", lastUsed: "1 week ago" },
-];
+// Users for this org (Placeholder for now)
+const orgUsers: any[] = [];
 
-// Users for this org
-const orgUsers = [
-  { id: 1, name: "Admin User", email: "admin@apex.com", role: "Org Admin", status: "Active", lastActive: "Just now" },
-  { id: 2, name: "Rajesh Kumar", email: "rajesh@apex.com", role: "Teacher", status: "Active", lastActive: "5 min ago" },
-  { id: 3, name: "Priya Sharma", email: "priya@apex.com", role: "Teacher", status: "Active", lastActive: "2 hours ago" },
-  { id: 4, name: "Amit Verma", email: "amit@apex.com", role: "Teacher", status: "Active", lastActive: "4 hours ago" },
-];
+// Invoices for this org (Placeholder for now)
+const invoices: any[] = [];
 
-// Invoices for this org
-const invoices = [
-  { id: "INV-2026-003", amount: 15000, period: "Mar 2026", status: "Paid", date: "Mar 01, 2026" },
-  { id: "INV-2026-002", amount: 15000, period: "Feb 2026", status: "Paid", date: "Feb 01, 2026" },
-  { id: "INV-2026-001", amount: 15000, period: "Jan 2026", status: "Paid", date: "Jan 01, 2026" },
-];
-
-// Audit log for this org
-const auditLog = [
-  { id: 1, action: "Plan Changed", actor: "Platform Owner", details: "Upgraded from Small to Medium", timestamp: "Mar 01, 2026 14:30" },
-  { id: 2, action: "User Added", actor: "Org Admin", details: "Added teacher: Priya Sharma", timestamp: "Feb 28, 2026 10:15" },
-  { id: 3, action: "Settings Changed", actor: "Org Admin", details: "Updated branding colors", timestamp: "Feb 25, 2026 16:45" },
-  { id: 4, action: "ID Generated", actor: "Platform Owner", details: "Generated GK-TCH-00892", timestamp: "Feb 20, 2026 09:00" },
-];
+// Audit log for this org (Placeholder for now)
+const auditLog: any[] = [];
 
 // Status Badge
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    Active: "badge-active",
-    Trial: "badge-trial",
-    Suspended: "badge-suspended",
+    ACTIVE: "badge-active",
+    TRIAL: "badge-trial",
+    SUSPENDED: "badge-suspended",
+    EXPIRED: "badge-suspended",
     Paid: "badge-active",
     Pending: "badge-pending",
   };
@@ -149,10 +105,10 @@ function StatusBadge({ status }: { status: string }) {
 // Plan Badge
 function PlanBadge({ plan }: { plan: string }) {
   const styles: Record<string, string> = {
-    Small: "badge-small",
-    Medium: "badge-medium",
-    Large: "badge-large",
-    Enterprise: "badge-enterprise",
+    SMALL: "badge-small",
+    MEDIUM: "badge-medium",
+    LARGE: "badge-large",
+    ENTERPRISE: "badge-enterprise",
   };
   return <span className={`badge ${styles[plan] || ""}`}>{plan}</span>;
 }
@@ -169,31 +125,159 @@ function AppTypeBadge({ type }: { type: string }) {
 
 export default function OrganizationDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const orgId = params.id as string;
+  const [loading, setLoading] = useState(true);
+  const [orgData, setOrgData] = useState<any>(null);
+  const [staffData, setStaffData] = useState<any[]>([]);
+  const [studentsData, setStudentsData] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [showSuspendDialog, setShowSuspendDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImpersonateDialog, setShowImpersonateDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
+  useEffect(() => {
+    fetchAllData();
+  }, [orgId]);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchOrgDetails(),
+      fetchStaff(),
+      fetchStudents(),
+      fetchAuditLogs()
+    ]);
+    setLoading(false);
+  };
+
+  const fetchOrgDetails = async () => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}`, {
+        headers: {
+          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrgData(data.data);
+      } else {
+        toast.error(data.error || "Failed to fetch organization details");
+        router.push('/organizations');
+      }
+    } catch (err) {
+      toast.error("Connection error");
+    }
+  };
+
+  const fetchStaff = async () => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/staff`, {
+        headers: {
+          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) setStaffData(data.data);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/students`, {
+        headers: {
+          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) setStudentsData(data.data);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchAuditLogs = async () => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/audit`, {
+        headers: {
+          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) setAuditLogs(data.data);
+    } catch (err) { console.error(err); }
+  };
+
   const handleCopyId = () => {
-    navigator.clipboard.writeText(orgData.id);
+    if (!orgData) return;
+    navigator.clipboard.writeText(orgData.orgId);
     toast.success("Organization ID copied to clipboard");
   };
 
   const handleImpersonate = () => {
+    if (!orgData) return;
     toast.success(`Impersonating ${orgData.name} admin`);
     setShowImpersonateDialog(false);
   };
 
-  const handleSuspend = () => {
-    toast.success(`${orgData.name} has been suspended`);
+  const handleSuspend = async () => {
+    if (!orgData) return;
+    try {
+      const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+        },
+        body: JSON.stringify({ status: 'SUSPENDED' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`${orgData.name} has been suspended`);
+        fetchOrgDetails();
+      } else {
+        toast.error(data.error || "Failed to suspend organization");
+      }
+    } catch (err) {
+      toast.error("Connection error");
+    }
     setShowSuspendDialog(false);
   };
 
   const handleDelete = () => {
+    if (!orgData) return;
     toast.success(`${orgData.name} has been deleted`);
     setShowDeleteDialog(false);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-neutral-bg">
+        <Sidebar />
+        <div className="ml-60 flex flex-col min-h-screen">
+          <TopBar />
+          <main className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
+              <p className="text-gray-500 font-medium">Loading organization details...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (!orgData) return null;
+
+  const planRates: Record<string, number> = {
+    SMALL: 5000,
+    MEDIUM: 15000,
+    LARGE: 40000,
+    ENTERPRISE: 100000
+  };
+
+  const mrr = planRates[orgData.plan] || 0;
+  const renewalDate = orgData.trialEndsAt ? new Date(orgData.trialEndsAt).toLocaleDateString() : 'N/A';
+  const createdAtFormatted = new Date(orgData.createdAt).toLocaleDateString();
 
   return (
     <div className="min-h-screen bg-neutral-bg">
@@ -227,14 +311,14 @@ export default function OrganizationDetailPage() {
                         <AppTypeBadge type={orgData.appType} />
                       </div>
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="mono text-sm">{orgData.id}</span>
+                        <span className="mono text-sm">{orgData.orgId}</span>
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopyId}>
                           <Copy className="w-3 h-3" />
                         </Button>
                         <span className="text-gray-400">•</span>
-                        <span className="text-sm text-gray-600">{orgData.domain}</span>
+                        <span className="text-sm text-gray-600">{orgData.domain || 'no-domain.com'}</span>
                         <span className="text-gray-400">•</span>
-                        <span className="text-sm text-gray-600">{orgData.email}</span>
+                        <span className="text-sm text-gray-600">{orgData.email || 'no-email@org.com'}</span>
                       </div>
                     </div>
                   </div>
@@ -317,7 +401,7 @@ export default function OrganizationDetailPage() {
                             </div>
                             <div>
                               <div className="text-xs text-gray-500">Teachers</div>
-                              <div className="text-xl font-bold text-gray-900">{orgData.teachers}</div>
+                              <div className="text-xl font-bold text-gray-900">{orgData._count.staff}</div>
                             </div>
                           </div>
                         </CardContent>
@@ -330,7 +414,7 @@ export default function OrganizationDetailPage() {
                             </div>
                             <div>
                               <div className="text-xs text-gray-500">Students</div>
-                              <div className="text-xl font-bold text-gray-900">{orgData.students.toLocaleString()}</div>
+                              <div className="text-xl font-bold text-gray-900">{orgData._count.students.toLocaleString()}</div>
                             </div>
                           </div>
                         </CardContent>
@@ -343,7 +427,7 @@ export default function OrganizationDetailPage() {
                             </div>
                             <div>
                               <div className="text-xs text-gray-500">MRR</div>
-                              <div className="text-xl font-bold text-gray-900">₹{orgData.mrr.toLocaleString()}</div>
+                              <div className="text-xl font-bold text-gray-900">₹{mrr.toLocaleString()}</div>
                             </div>
                           </div>
                         </CardContent>
@@ -356,7 +440,7 @@ export default function OrganizationDetailPage() {
                             </div>
                             <div>
                               <div className="text-xs text-gray-500">Renewal</div>
-                              <div className="text-xl font-bold text-gray-900">{orgData.renewalDate}</div>
+                              <div className="text-xl font-bold text-gray-900">{renewalDate}</div>
                             </div>
                           </div>
                         </CardContent>
@@ -373,27 +457,27 @@ export default function OrganizationDetailPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label>Organization Name</Label>
-                            <Input defaultValue={orgData.name} className="input-field" />
+                            <Input defaultValue={orgData.name} className="input-field" readOnly />
                           </div>
                           <div className="space-y-2">
                             <Label>Domain</Label>
-                            <Input defaultValue={orgData.domain} className="input-field" />
+                            <Input defaultValue={orgData.domain || 'N/A'} className="input-field" readOnly />
                           </div>
                           <div className="space-y-2">
                             <Label>Contact Email</Label>
-                            <Input defaultValue={orgData.email} className="input-field" />
+                            <Input defaultValue={orgData.email || 'N/A'} className="input-field" readOnly />
                           </div>
                           <div className="space-y-2">
                             <Label>Phone</Label>
-                            <Input defaultValue={orgData.phone} className="input-field" />
+                            <Input defaultValue={orgData.mobile || 'N/A'} className="input-field" readOnly />
                           </div>
                         </div>
                         <div className="space-y-2">
                           <Label>Address</Label>
-                          <Input defaultValue={orgData.address} className="input-field" />
+                          <Input defaultValue={`${orgData.city || ''} ${orgData.state || ''}`.trim() || 'N/A'} className="input-field" readOnly />
                         </div>
                         <div className="flex justify-end">
-                          <Button className="btn-primary">Save Changes</Button>
+                          <Button className="btn-primary" disabled>Save Changes</Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -414,16 +498,16 @@ export default function OrganizationDetailPage() {
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">AI Credits This Month</span>
-                            <span className="font-medium">{orgData.aiCreditsUsed} / {orgData.aiCreditsLimit}</span>
+                            <span className="font-medium">{orgData.aiCredits} / {orgData.plan === 'SMALL' ? '500' : orgData.plan === 'MEDIUM' ? '2000' : '8000'}</span>
                           </div>
-                          <Progress value={68} className="h-2" />
+                          <Progress value={Math.min((orgData.aiCredits / (orgData.plan === 'SMALL' ? 500 : 2000)) * 100, 100)} className="h-2" />
                         </div>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">Active Students</span>
-                            <span className="font-medium">{orgData.activeStudents.toLocaleString()} / {orgData.students.toLocaleString()}</span>
+                            <span className="font-medium">{orgData._count.students.toLocaleString()} / 10000</span>
                           </div>
-                          <Progress value={77} className="h-2" />
+                          <Progress value={Math.min((orgData._count.students / 10000) * 100, 100)} className="h-2" />
                         </div>
                       </CardContent>
                     </Card>
@@ -462,19 +546,19 @@ export default function OrganizationDetailPage() {
                         <div className="space-y-3">
                           <div className="flex items-center justify-between py-2 border-b border-gray-100">
                             <span className="text-sm text-gray-600">Created</span>
-                            <span className="text-sm font-medium">{orgData.createdAt}</span>
+                            <span className="text-sm font-medium">{createdAtFormatted}</span>
                           </div>
                           <div className="flex items-center justify-between py-2 border-b border-gray-100">
                             <span className="text-sm text-gray-600">Total Revenue</span>
-                            <span className="text-sm font-medium">₹{orgData.totalRevenue.toLocaleString()}</span>
+                            <span className="text-sm font-medium">₹{(mrr * 3).toLocaleString()} (Est.)</span>
                           </div>
                           <div className="flex items-center justify-between py-2 border-b border-gray-100">
                             <span className="text-sm text-gray-600">App Type</span>
-                            <AppTypeBadge type={orgData.appType} />
+                            <AppTypeBadge type={orgData.appType || 'STUDENT'} />
                           </div>
                           <div className="flex items-center justify-between py-2">
-                            <span className="text-sm text-gray-600">Admin Domain</span>
-                            <span className="text-sm text-gray-900">{orgData.adminDomain || "—"}</span>
+                            <span className="text-sm text-gray-600">Admin Email</span>
+                            <span className="text-sm text-gray-900">{orgData.orgAdminEmail || "—"}</span>
                           </div>
                         </div>
                       </CardContent>
@@ -508,26 +592,29 @@ export default function OrganizationDetailPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {uniqueIDs.map((uid) => (
+                        {staffData.map((uid) => (
                           <TableRow key={uid.id} className="hover:bg-brand-primary-tint">
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <span className="mono">{uid.id}</span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toast.success("Copied!")}>
+                                <span className="mono">{uid.staffId}</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                                  navigator.clipboard.writeText(uid.staffId);
+                                  toast.success("Copied!");
+                                }}>
                                   <Copy className="w-3 h-3" />
                                 </Button>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge className={uid.type === "Teacher" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"}>
-                                {uid.type}
+                              <Badge className={uid.role === "TEACHER" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"}>
+                                {uid.role}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm text-gray-900">{uid.name}</TableCell>
                             <TableCell>
-                              <StatusBadge status={uid.status} />
+                              <StatusBadge status={uid.isActive ? "ACTIVE" : "SUSPENDED"} />
                             </TableCell>
-                            <TableCell className="text-sm text-gray-500">{uid.lastUsed}</TableCell>
+                            <TableCell className="text-sm text-gray-500">{uid.user?.lastLoginAt ? new Date(uid.user.lastLoginAt).toLocaleString() : 'Never'}</TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -544,6 +631,11 @@ export default function OrganizationDetailPage() {
                             </TableCell>
                           </TableRow>
                         ))}
+                        {staffData.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">No Unique IDs found for this organization.</TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                   </CardContent>
@@ -628,30 +720,30 @@ export default function OrganizationDetailPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {orgUsers.map((user) => (
-                          <TableRow key={user.id} className="hover:bg-brand-primary-tint">
+                        {staffData.map((staff) => (
+                          <TableRow key={staff.id} className="hover:bg-brand-primary-tint">
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar className="w-8 h-8">
                                   <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
-                                    {user.name.split(" ").map(n => n[0]).join("")}
+                                    {staff.name.split(" ").map((n: string) => n[0]).join("")}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                                  <div className="text-xs text-gray-500">{user.email}</div>
+                                  <div className="text-sm font-medium text-gray-900">{staff.name}</div>
+                                  <div className="text-xs text-gray-500">{staff.email}</div>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge className={user.role === "Org Admin" ? "bg-orange-50 text-orange-700" : "bg-purple-50 text-purple-700"}>
-                                {user.role}
+                              <Badge className={staff.role === "ORG_ADMIN" ? "bg-orange-50 text-orange-700" : "bg-purple-50 text-purple-700"}>
+                                {staff.role}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <StatusBadge status={user.status} />
+                              <StatusBadge status={staff.isActive ? "ACTIVE" : "SUSPENDED"} />
                             </TableCell>
-                            <TableCell className="text-sm text-gray-500">{user.lastActive}</TableCell>
+                            <TableCell className="text-sm text-gray-500">{staff.user?.lastLoginAt ? new Date(staff.user.lastLoginAt).toLocaleString() : 'Never'}</TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -669,6 +761,38 @@ export default function OrganizationDetailPage() {
                             </TableCell>
                           </TableRow>
                         ))}
+                        {studentsData.map((student) => (
+                          <TableRow key={student.id} className="hover:bg-brand-primary-tint">
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="w-8 h-8">
+                                  <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
+                                    {student.name.split(" ").map((n: string) => n[0]).join("")}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                                  <div className="text-xs text-gray-500">{student.email || "No Email"}</div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className="bg-blue-50 text-blue-700">STUDENT</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={student.isActive ? "ACTIVE" : "SUSPENDED"} />
+                            </TableCell>
+                            <TableCell className="text-sm text-gray-500">{student.user?.lastLoginAt ? new Date(student.user.lastLoginAt).toLocaleString() : 'Never'}</TableCell>
+                            <TableCell className="text-right">
+                              {/* Actions placeholder */}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {staffData.length === 0 && studentsData.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8 text-gray-500">No users found for this organization.</TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                   </CardContent>
@@ -752,6 +876,11 @@ export default function OrganizationDetailPage() {
                             </TableCell>
                           </TableRow>
                         ))}
+                        {invoices.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">No invoices generated yet.</TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                   </CardContent>

@@ -220,116 +220,6 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Integrations */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
-                    <Server className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Integrations</CardTitle>
-                    <CardDescription>Third-party service configurations</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="supabaseUrl">Supabase Project URL</Label>
-                  <Input
-                    id="supabaseUrl"
-                    placeholder="https://xxxx.supabase.co"
-                    className="input-field"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="emailProvider">Email Provider</Label>
-                    <Select defaultValue="resend">
-                      <SelectTrigger className="input-field">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="resend">Resend</SelectItem>
-                        <SelectItem value="sendgrid">SendGrid</SelectItem>
-                        <SelectItem value="mailgun">Mailgun</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentGateway">Payment Gateway</Label>
-                    <Select defaultValue="razorpay">
-                      <SelectTrigger className="input-field">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="razorpay">Razorpay</SelectItem>
-                        <SelectItem value="stripe">Stripe</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="aiProvider">AI Provider</Label>
-                  <Select defaultValue="openai">
-                    <SelectTrigger className="input-field">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="gemini">Google Gemini</SelectItem>
-                      <SelectItem value="anthropic">Anthropic</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Points Economy */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center">
-                    <Coins className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Points Economy</CardTitle>
-                    <CardDescription>Question bank usage and point valuation</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultAICost">Default AI Usage Cost</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="defaultAICost"
-                        type="number"
-                        value={defaultAICost}
-                        onChange={(e) => setDefaultAICost(e.target.value)}
-                        className="input-field"
-                      />
-                      <span className="text-sm text-gray-500">points/question</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="pointRate">Platform Point Rate</Label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">1 point = ₹</span>
-                      <Input
-                        id="pointRate"
-                        type="number"
-                        value={pointRate}
-                        onChange={(e) => setPointRate(e.target.value)}
-                        className="input-field w-24"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Danger Zone */}
             <Card className="border-red-200">
               <CardHeader>
@@ -339,20 +229,20 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between py-2 border-b border-gray-100">
                   <div>
-                    <div className="font-medium text-gray-900">Clear All Cache</div>
-                    <div className="text-sm text-gray-500">Clear platform-wide cache data</div>
+                    <div className="font-medium text-gray-900">Deactivate Account</div>
+                    <div className="text-sm text-gray-500">Temporarily suspend organization access</div>
                   </div>
                   <Button variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50">
-                    Clear Cache
+                    Deactivate
                   </Button>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <div>
-                    <div className="font-medium text-gray-900">Reset Platform</div>
-                    <div className="text-sm text-gray-500">Reset all data to initial state. This cannot be undone.</div>
+                    <div className="font-medium text-gray-900">Delete Organization</div>
+                    <div className="text-sm text-gray-500">Permanently delete organization data. This cannot be undone.</div>
                   </div>
                   <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
-                    Reset Platform
+                    Delete
                   </Button>
                 </div>
               </CardContent>

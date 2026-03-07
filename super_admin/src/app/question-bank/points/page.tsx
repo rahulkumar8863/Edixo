@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Coins,
   Search,
@@ -40,14 +40,14 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-// Mock data
-const mockOrganizations = [
-  { id: "1", name: "Apex Academy", balance: 1190, plan: "Medium", usedThisMonth: 85, monthlyCredits: 2000 },
-  { id: "2", name: "Brilliant Classes", balance: 2250, plan: "Large", usedThisMonth: 120, monthlyCredits: 5000 },
-  { id: "3", name: "Career Point", balance: 890, plan: "Small", usedThisMonth: 45, monthlyCredits: 500 },
-  { id: "4", name: "Med Academy", balance: 1800, plan: "Medium", usedThisMonth: 95, monthlyCredits: 2000 },
-  { id: "5", name: "IAS Hub", balance: 850, plan: "Small", usedThisMonth: 32, monthlyCredits: 500 },
-];
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
 
 const mockTransactions = [
   { id: "1", org: "Apex Academy", type: "plan_credit", description: "Monthly plan credit (Medium)", points: 2000, balanceAfter: 3190, createdAt: "Mar 1, 2026" },
@@ -74,6 +74,43 @@ export default function PointsLedgerPage() {
   const [addPointsDialog, setAddPointsDialog] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState("");
   const [pointsToAdd, setPointsToAdd] = useState("");
+
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchOrgs = async () => {
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_URL}/super-admin/organizations?limit=100`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const orgsData = (json.data?.orgs || []).map((org: any) => ({
+          id: org.id,
+          orgId: org.orgId,
+          name: org.name,
+          balance: org.aiCredits || 0,
+          plan: org.plan || "SMALL",
+          // Default assumptions for monthly limits since not directly in API summary
+          monthlyCredits: org.plan === "ENTERPRISE" ? 999999 : org.plan === "LARGE" ? 8000 : org.plan === "MEDIUM" ? 2000 : 500,
+          usedThisMonth: 0,
+        }));
+        setOrganizations(orgsData);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrgs();
+  }, []);
+
+  // Compute calculated stats
+  const totalPoints = organizations.reduce((acc, org) => acc + org.balance, 0);
 
   const filteredTransactions = mockTransactions.filter(tx => {
     const matchesSearch = tx.description.toLowerCase().includes(search.toLowerCase()) || tx.org.toLowerCase().includes(search.toLowerCase());
@@ -108,7 +145,7 @@ export default function PointsLedgerPage() {
                     <Coins className="w-6 h-6 text-[#F4511E]" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">7,180</div>
+                    <div className="text-2xl font-bold text-gray-900">{totalPoints.toLocaleString()}</div>
                     <div className="text-sm text-gray-500">Total Points in System</div>
                   </div>
                 </CardContent>
@@ -141,7 +178,7 @@ export default function PointsLedgerPage() {
                     <Building2 className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">{mockOrganizations.length}</div>
+                    <div className="text-2xl font-bold text-gray-900">{organizations.length}</div>
                     <div className="text-sm text-gray-500">Active Organizations</div>
                   </div>
                 </CardContent>
@@ -170,7 +207,7 @@ export default function PointsLedgerPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockOrganizations.map((org) => (
+                      {organizations.map((org) => (
                         <tr key={org.id} className="border-b hover:bg-gray-50 transition-colors">
                           <td className="p-4">
                             <div className="flex items-center gap-2">
@@ -181,11 +218,11 @@ export default function PointsLedgerPage() {
                             </div>
                           </td>
                           <td className="p-4">
-                            <Badge className={org.plan === "Large" ? "bg-purple-50 text-purple-700" : org.plan === "Medium" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-700"}>
+                            <Badge className={org.plan === "LARGE" ? "bg-purple-50 text-purple-700" : org.plan === "MEDIUM" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-700"}>
                               {org.plan}
                             </Badge>
                           </td>
-                          <td className="p-4 text-center text-gray-600">{org.monthlyCredits.toLocaleString()}</td>
+                          <td className="p-4 text-center text-gray-600">{org.monthlyCredits >= 999999 ? 'Unlimited' : org.monthlyCredits.toLocaleString()}</td>
                           <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-2">
                               <span className="text-gray-600">{org.usedThisMonth}</span>
@@ -226,7 +263,7 @@ export default function PointsLedgerPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Organizations</SelectItem>
-                      {mockOrganizations.map(org => (
+                      {organizations.map(org => (
                         <SelectItem key={org.id} value={org.name}>{org.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -324,7 +361,7 @@ export default function PointsLedgerPage() {
                   <SelectValue placeholder="Select organization" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockOrganizations.map(org => (
+                  {organizations.map(org => (
                     <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
                   ))}
                 </SelectContent>

@@ -13,7 +13,6 @@ import {
   CreditCard,
   BookOpen,
   ClipboardList,
-  Monitor,
   Globe,
   GraduationCap,
   Users,
@@ -65,19 +64,10 @@ const navigation: NavGroup[] = [
     items: [
       { label: "Dashboard", href: "/", icon: <LayoutDashboard className="w-5 h-5" /> },
       { label: "Analytics", href: "/analytics", icon: <BarChart3 className="w-5 h-5" /> },
-      { label: "Alerts", href: "/alerts", icon: <Bell className="w-5 h-5" />, badge: 3 },
     ],
   },
   {
-    title: "PLATFORM",
-    items: [
-      { label: "Organizations", href: "/organizations", icon: <Building2 className="w-5 h-5" /> },
-      { label: "Unique IDs", href: "/unique-ids", icon: <Fingerprint className="w-5 h-5" /> },
-      { label: "Billing", href: "/billing", icon: <CreditCard className="w-5 h-5" />, badge: 2 },
-    ],
-  },
-  {
-    title: "CONTENT",
+    title: "CONTENT MANAGEMENT",
     items: [
       {
         label: "Question Bank",
@@ -89,44 +79,26 @@ const navigation: NavGroup[] = [
           { label: "Create Question", href: "/question-bank/create", icon: <PlusCircle className="w-4 h-4" /> },
           { label: "Question Sets", href: "/question-bank/sets", icon: <Layers className="w-4 h-4" /> },
           { label: "Marketplace", href: "/question-bank/marketplace", icon: <Store className="w-4 h-4" /> },
-          { label: "Question Generation", href: "/question-bank/ai-generate", icon: <Sparkles className="w-4 h-4" /> },
-          { label: "Taxonomy", href: "/question-bank/taxonomy", icon: <Tags className="w-4 h-4" /> },
-          { label: "Usage Log", href: "/question-bank/usage-log", icon: <History className="w-4 h-4" /> },
-          { label: "Points Ledger", href: "/question-bank/points", icon: <Coins className="w-4 h-4" /> },
+          { label: "Generative AI", href: "/question-bank/ai-generate", icon: <Sparkles className="w-4 h-4" /> },
+          { label: "Question Reports", href: "/question-bank/reports", icon: <ClipboardList className="w-4 h-4" /> },
         ],
       },
       { label: "MockBook", href: "/mockbook", icon: <ClipboardList className="w-5 h-5" /> },
-      { label: "Digital Board", href: "/digital-board", icon: <Monitor className="w-5 h-5" /> },
-      {
-        label: "Public Website CMS",
-        href: "/website",
-        icon: <Globe className="w-5 h-5" />,
-        children: [
-          { label: "Dashboard", href: "/website", icon: <LayoutGrid className="w-4 h-4" /> },
-          { label: "Plans & Packs", href: "/website/plans", icon: <Target className="w-4 h-4" /> },
-          { label: "Blogs", href: "/website/blogs", icon: <FileText className="w-4 h-4" /> },
-          { label: "Tools", href: "/website/tools", icon: <Layers className="w-4 h-4" /> },
-          { label: "Leads", href: "/website/leads", icon: <Users className="w-4 h-4" /> },
-          { label: "SEO Settings", href: "/website/seo", icon: <Search className="w-4 h-4" /> },
-        ],
-      },
     ],
   },
   {
-    title: "APPS",
+    title: "USER MANAGEMENT",
     items: [
-      { label: "Student App", href: "/student-app", icon: <GraduationCap className="w-5 h-5" /> },
-      { label: "Org Admin Control", href: "/org-admin", icon: <Users className="w-5 h-5" /> },
+      { label: "Students", href: "/students", icon: <GraduationCap className="w-5 h-5" /> },
+      { label: "Batches", href: "/batches", icon: <Users className="w-5 h-5" /> },
+      { label: "Student App Control", href: "/student-app", icon: <Settings className="w-5 h-5" /> },
     ],
   },
   {
-    title: "MANAGEMENT",
+    title: "ADMINISTRATION",
     items: [
-      { label: "Users", href: "/users", icon: <Users className="w-5 h-5" /> },
-      { label: "Staff Management", href: "/admin/staff", icon: <UserCog className="w-5 h-5" /> },
-      { label: "Roles & Permissions", href: "/admin/roles", icon: <Shield className="w-5 h-5" /> },
-      { label: "White-Label", href: "/white-label", icon: <Palette className="w-5 h-5" /> },
-      { label: "Audit Log", href: "/audit-log", icon: <FileText className="w-5 h-5" /> },
+      { label: "Staff Management", href: "/staff", icon: <UserCog className="w-5 h-5" /> },
+      { label: "Billing & Subscriptions", href: "/billing", icon: <CreditCard className="w-5 h-5" /> },
       { label: "Settings", href: "/settings", icon: <Settings className="w-5 h-5" /> },
     ],
   },
@@ -223,8 +195,8 @@ export function Sidebar() {
             </div>
             <div className="flex flex-col">
               <span className="text-white font-semibold text-sm">EduHub</span>
-              <Badge className="bg-brand-primary text-white text-[10px] px-1.5 py-0 h-4 -ml-0.5">
-                SUPER ADMIN
+              <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0 h-4 -ml-0.5">
+                ORG ADMIN
               </Badge>
             </div>
           </div>
@@ -251,12 +223,12 @@ export function Sidebar() {
           <div className="flex items-center gap-3">
             <Avatar className="w-9 h-9 border-2 border-white/20">
               <AvatarImage src="/avatar.png" />
-              <AvatarFallback className="bg-brand-primary text-white text-sm font-semibold">
-                PA
+              <AvatarFallback className="bg-emerald-600 text-white text-sm font-semibold">
+                IA
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="text-white text-sm font-medium truncate">Platform Owner</div>
+              <div className="text-white text-sm font-medium truncate">Institute Admin</div>
               <div className="text-slate-400 text-xs truncate">admin@eduhub.in</div>
             </div>
             <button className="text-slate-400 hover:text-white transition-colors p-1">

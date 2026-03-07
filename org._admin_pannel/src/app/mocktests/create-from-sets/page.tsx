@@ -12,7 +12,6 @@ import {
   MessageCircle,
   Mail,
   Layers,
-  Monitor,
   Download,
   Users,
   Eye,
@@ -491,11 +490,7 @@ export default function CreateMockTestFromSetsPage() {
                   </div>
 
                   {/* Action Grid */}
-                  <div className="grid sm:grid-cols-4 gap-3 max-w-2xl mx-auto pt-4 border-t">
-                    <Button variant="outline" className="h-auto py-4 flex-col gap-2">
-                      <Monitor className="w-5 h-5" />
-                      <span className="text-xs">Digital Board</span>
-                    </Button>
+                  <div className="grid sm:grid-cols-3 gap-3 max-w-2xl mx-auto pt-4 border-t">
                     <Button variant="outline" className="h-auto py-4 flex-col gap-2">
                       <Download className="w-5 h-5" />
                       <span className="text-xs">Export PDF</span>

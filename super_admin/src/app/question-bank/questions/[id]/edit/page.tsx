@@ -89,6 +89,15 @@ interface QuestionForm {
   tags: string[];
 }
 
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
+
 const initialForm: QuestionForm = {
   subject: "",
   chapter: "",
@@ -114,187 +123,6 @@ const initialForm: QuestionForm = {
   syncCode: "",
   questionNo: "",
   tags: [],
-};
-
-// Mock questions data - same as in questions list page
-const mockQuestions: Record<string, QuestionForm & { id: string; usageCount: number } & Record<string, unknown>> = {
-  "Q-00001": {
-    id: "Q-00001",
-    question_hin: "<p>न्यूटन का कौन सा नियम F = ma बताता है?</p>",
-    question_eng: "<p>Which law states F = ma?</p>",
-    type: "mcq",
-    subject: "Physics",
-    chapter: "Laws of Motion",
-    topic: "Newton's Second Law",
-    difficulty: "easy",
-    questionType: "mcq",
-    language: "bilingual",
-    relatedExam: "JEE Main",
-    previousOf: "",
-    collection: "",
-    sourceType: "original",
-    visibility: "public",
-    pointCost: 5,
-    usageCount: 124,
-    answer: "B",
-    option1_hin: "<p>प्रथम नियम</p>",
-    option1_eng: "<p>First Law</p>",
-    option2_hin: "<p>द्वितीय नियम</p>",
-    option2_eng: "<p>Second Law</p>",
-    option3_hin: "<p>तृतीय नियम</p>",
-    option3_eng: "<p>Third Law</p>",
-    option4_hin: "<p>गुरुत्वाकर्षण नियम</p>",
-    option4_eng: "<p>Law of Gravitation</p>",
-    solution_hin: "<p>न्यूटन का द्वितीय नियम F = ma है, जो बल द्रव्यमान और त्वरण के बीच संबंध बताता है।</p>",
-    solution_eng: "<p>Newton's second law states F = ma, which relates force, mass, and acceleration.</p>",
-    video: "",
-    answerRangeMin: "",
-    answerRangeMax: "",
-    externalId: "",
-    syncCode: "",
-    questionNo: "",
-    tags: ["newton", "motion", "force"],
-  },
-  "Q-00002": {
-    id: "Q-00002",
-    question_hin: "<p>ग्लूकोज का मॉलिक्यूलर फॉर्मूला क्या है?</p><p>\\(C_6H_{12}O_6\\)</p>",
-    question_eng: "<p>What is the molecular formula of Glucose?</p><p>\\(C_6H_{12}O_6\\)</p>",
-    type: "mcq",
-    subject: "Chemistry",
-    chapter: "Carbohydrates",
-    topic: "Monosaccharides",
-    difficulty: "medium",
-    questionType: "mcq",
-    language: "bilingual",
-    relatedExam: "NEET",
-    previousOf: "",
-    collection: "Biomolecules",
-    sourceType: "original",
-    visibility: "public",
-    pointCost: 8,
-    usageCount: 89,
-    answer: "A",
-    option1_hin: "<p>\\(C_6H_{12}O_6\\)</p>",
-    option1_eng: "<p>\\(C_6H_{12}O_6\\)</p>",
-    option2_hin: "<p>\\(C_5H_{10}O_5\\)</p>",
-    option2_eng: "<p>\\(C_5H_{10}O_5\\)</p>",
-    option3_hin: "<p>\\(C_{12}H_{22}O_{11}\\)</p>",
-    option3_eng: "<p>\\(C_{12}H_{22}O_{11}\\)</p>",
-    option4_hin: "<p>\\(C_6H_{10}O_5\\)</p>",
-    option4_eng: "<p>\\(C_6H_{10}O_5\\)</p>",
-    solution_hin: "<p>ग्लूकोज एक हेक्सोज शर्करा है जिसका मॉलिक्यूलर फॉर्मूला \\(C_6H_{12}O_6\\) है।</p>",
-    solution_eng: "<p>Glucose is a hexose sugar with molecular formula \\(C_6H_{12}O_6\\).</p>",
-    video: "",
-    answerRangeMin: "",
-    answerRangeMax: "",
-    externalId: "",
-    syncCode: "",
-    questionNo: "",
-    tags: ["glucose", "carbohydrates"],
-  },
-  "Q-00003": {
-    id: "Q-00003",
-    question_hin: "<p>H<sub>2</sub>SO<sub>4</sub> को क्या कहते हैं?</p>",
-    question_eng: "<p>What is H<sub>2</sub>SO<sub>4</sub> called?</p>",
-    type: "mcq",
-    subject: "Chemistry",
-    chapter: "Acids and Bases",
-    topic: "",
-    difficulty: "easy",
-    questionType: "mcq",
-    language: "bilingual",
-    relatedExam: "",
-    previousOf: "",
-    collection: "",
-    sourceType: "original",
-    visibility: "public",
-    pointCost: 5,
-    usageCount: 156,
-    answer: "C",
-    option1_hin: "<p>हाइड्रोक्लोरिक एसिड</p>",
-    option1_eng: "<p>Hydrochloric Acid</p>",
-    option2_hin: "<p>नाइट्रिक एसिड</p>",
-    option2_eng: "<p>Nitric Acid</p>",
-    option3_hin: "<p>सल्फ्यूरिक एसिड</p>",
-    option3_eng: "<p>Sulfuric Acid</p>",
-    option4_hin: "<p>एसीटिक एसिड</p>",
-    option4_eng: "<p>Acetic Acid</p>",
-    solution_hin: "<p>H<sub>2</sub>SO<sub>4</sub> सल्फ्यूरिक एसिड है, जिसे ऑयल ऑफ विट्रियोल भी कहा जाता है।</p>",
-    solution_eng: "<p>H<sub>2</sub>SO<sub>4</sub> is Sulfuric Acid, also known as Oil of Vitriol.</p>",
-    video: "",
-    answerRangeMin: "",
-    answerRangeMax: "",
-    externalId: "",
-    syncCode: "",
-    questionNo: "",
-    tags: ["acids"],
-  },
-  "Q-00004": {
-    id: "Q-00004",
-    question_hin: "<p>यदि एक वस्तु 45m की ऊंचाई से गिराई जाती है, तो जमीन तक पहुंचने में कितना समय लगेगा? (g=10 m/s²)</p>",
-    question_eng: "<p>If a body is dropped from a height of 45m, find the time taken to reach the ground (g=10 m/s²)</p>",
-    type: "integer",
-    subject: "Physics",
-    chapter: "Kinematics",
-    topic: "Projectile Motion",
-    difficulty: "medium",
-    questionType: "integer",
-    language: "bilingual",
-    relatedExam: "JEE Advanced",
-    previousOf: "JEE Mains 2022",
-    collection: "",
-    sourceType: "pyq",
-    visibility: "public",
-    pointCost: 8,
-    usageCount: 98,
-    answer: "3",
-    solution_hin: "<p>s = ut + ½gt²</p><p>45 = 0 + ½ × 10 × t²</p><p>t² = 9, t = 3s</p>",
-    solution_eng: "<p>s = ut + ½gt²</p><p>45 = 0 + ½ × 10 × t²</p><p>t² = 9, t = 3s</p>",
-    video: "",
-    answerRangeMin: "",
-    answerRangeMax: "",
-    externalId: "",
-    syncCode: "",
-    questionNo: "",
-    tags: ["kinematics", "projectile"],
-  },
-  "Q-00005": {
-    id: "Q-00005",
-    question_hin: "<p>सेल का पावरहाउस किस ऑर्गेनेल को कहा जाता है?</p>",
-    question_eng: "<p>Which organelle is known as the powerhouse of the cell?</p>",
-    type: "mcq",
-    subject: "Biology",
-    chapter: "Cell Structure",
-    topic: "",
-    difficulty: "easy",
-    questionType: "mcq",
-    language: "bilingual",
-    relatedExam: "NEET",
-    previousOf: "",
-    collection: "",
-    sourceType: "original",
-    visibility: "public",
-    pointCost: 5,
-    usageCount: 203,
-    answer: "B",
-    option1_hin: "<p>राइबोसोम</p>",
-    option1_eng: "<p>Ribosome</p>",
-    option2_hin: "<p>माइटोकॉन्ड्रिया</p>",
-    option2_eng: "<p>Mitochondria</p>",
-    option3_hin: "<p>गॉल्जी बॉडी</p>",
-    option3_eng: "<p>Golgi Body</p>",
-    option4_hin: "<p>एंडोप्लाज्मिक रेटिकुलम</p>",
-    option4_eng: "<p>Endoplasmic Reticulum</p>",
-    solution_hin: "<p>माइटोकॉन्ड्रिया को सेल का पावरहाउस कहा जाता है क्योंकि यह ATP का उत्पादन करता है।</p>",
-    solution_eng: "<p>Mitochondria is called the powerhouse of the cell as it produces ATP.</p>",
-    video: "",
-    answerRangeMin: "",
-    answerRangeMax: "",
-    externalId: "",
-    syncCode: "",
-    questionNo: "",
-    tags: ["cell", "organelles"],
-  },
 };
 
 // Rich Text Toolbar Component
@@ -386,29 +214,38 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    const questionId = resolvedParams.id;
-    const questionData = mockQuestions[questionId];
-    
-    if (questionData) {
-      // Use requestAnimationFrame to defer state updates and avoid cascading renders
-      requestAnimationFrame(() => {
+    const fetchQuestion = async () => {
+      try {
+        const questionId = resolvedParams.id;
+        const token = getToken();
+        const response = await fetch(`${API_URL}/qbank/questions/${questionId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch question');
+        }
+
+        const resData = await response.json();
+        const questionData = resData.data;
+
         setFormData({
-          subject: questionData.subject || "",
+          subject: questionData.folder?.name || "",
           chapter: questionData.chapter || "",
           topic: questionData.topic || "",
-          difficulty: questionData.difficulty || "medium",
-          questionType: questionData.questionType || questionData.type || "mcq",
+          difficulty: questionData.difficulty?.toLowerCase() || "medium",
+          questionType: (questionData.type || "mcq").toLowerCase(),
           language: questionData.language || "bilingual",
           relatedExam: questionData.relatedExam || "",
           previousOf: questionData.previousOf || "",
           collection: questionData.collection || "",
           sourceType: questionData.sourceType || "original",
-          question_hin: questionData.question_hin || "",
-          question_eng: questionData.question_eng || "",
-          solution_hin: questionData.solution_hin || "",
-          solution_eng: questionData.solution_eng || "",
+          question_hin: questionData.textHi || "",
+          question_eng: questionData.textEn || "",
+          solution_hin: questionData.explanationHi || "",
+          solution_eng: questionData.explanationEn || "",
           video: questionData.video || "",
-          answer: questionData.answer || "",
+          answer: "", // We will compute this from options
           answerRangeMin: questionData.answerRangeMin || "",
           answerRangeMax: questionData.answerRangeMax || "",
           visibility: questionData.visibility || "private",
@@ -419,32 +256,35 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
           tags: questionData.tags || [],
         });
 
-        // Load options if MCQ
-        if (questionData.questionType === "mcq" || questionData.type === "mcq" || questionData.questionType === "multi_select") {
-          const loadedOptions: BilingualOption[] = [];
-          for (let i = 1; i <= 5; i++) {
-            const optHin = questionData[`option${i}_hin` as keyof typeof questionData];
-            const optEng = questionData[`option${i}_eng` as keyof typeof questionData];
-            if (optHin || optEng) {
-              loadedOptions.push({
-                id: String.fromCharCode(64 + i), // A, B, C, D, E
-                label: String.fromCharCode(64 + i),
-                text_hin: (optHin as string) || "",
-                text_eng: (optEng as string) || "",
-              });
+        if (questionData.options && questionData.options.length > 0) {
+          let correctAnswerStr = "";
+          const loadedOptions: BilingualOption[] = questionData.options.map((opt: any, index: number) => {
+            const letterId = String.fromCharCode(65 + index); // A, B, C, D...
+            if (opt.isCorrect) {
+              correctAnswerStr += (correctAnswerStr ? "," : "") + letterId;
             }
-          }
-          if (loadedOptions.length >= 2) {
-            setOptions(loadedOptions);
-          }
+            return {
+              id: letterId,
+              label: letterId,
+              text_hin: opt.textHi || "",
+              text_eng: opt.textEn || "",
+            };
+          });
+
+          setOptions(loadedOptions);
+          // Update the answer field in formData after options are processed
+          setFormData(prev => ({ ...prev, answer: correctAnswerStr }));
         }
 
         setLoading(false);
-      });
-    } else {
-      toast.error("Question not found");
-      router.push("/question-bank/questions");
-    }
+      } catch (error) {
+        console.error("Error fetching question:", error);
+        toast.error("Failed to load question correctly");
+        router.push("/question-bank/questions");
+      }
+    };
+
+    fetchQuestion();
   }, [resolvedParams.id, router]);
 
   const getChapters = () => {
@@ -483,8 +323,8 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
   };
 
   // Insert helpers
-  const getFieldKey = (field: "question" | "solution") => 
-    field === "question" 
+  const getFieldKey = (field: "question" | "solution") =>
+    field === "question"
       ? (activeLangTab === "hin" ? "question_hin" : "question_eng")
       : (activeLangTab === "hin" ? "solution_hin" : "solution_eng");
 
@@ -529,15 +369,58 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
     return true;
   };
 
-  const handleSave = (publish: boolean = false) => {
+  const handleSave = async (publish: boolean = false) => {
     if (!isFormValid()) {
       toast.error("Please fill all required fields");
       return;
     }
-    const questionData = { ...formData, status: publish ? "published" : "draft", id: resolvedParams.id };
-    console.log("Updated Question Data:", questionData);
-    toast.success(publish ? "Question updated and published!" : "Question updated successfully!");
-    router.push("/question-bank/questions");
+
+    try {
+      const typeMap: Record<string, string> = {
+        "mcq": "MCQ_SINGLE",
+        "multi_select": "MCQ_MULTIPLE",
+        "integer": "DESCRIPTIVE",
+        "true_false": "TRUE_FALSE",
+      };
+
+      const payload = {
+        textEn: formData.question_eng,
+        textHi: formData.question_hin,
+        explanationEn: formData.solution_eng,
+        explanationHi: formData.solution_hin,
+        type: typeMap[formData.questionType] || "MCQ_SINGLE",
+        difficulty: formData.difficulty.toUpperCase(),
+        visibility: publish ? "public" : formData.visibility,
+        tags: formData.tags,
+        options: options.map((opt, index) => ({
+          textEn: opt.text_eng,
+          textHi: opt.text_hin,
+          sortOrder: index,
+          isCorrect: formData.answer.includes(opt.id)
+        })),
+        isApproved: publish,
+      };
+
+      const token = getToken();
+      const response = await fetch(`${API_URL}/qbank/questions/${resolvedParams.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update question');
+      }
+
+      toast.success(publish ? "Question updated and published!" : "Question updated successfully!");
+      router.push("/question-bank/questions");
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("An error occurred while saving");
+    }
   };
 
   if (loading) {
@@ -629,7 +512,7 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
                         </Select>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="space-y-2">
                         <Label>Difficulty <span className="text-red-500">*</span></Label>
@@ -782,9 +665,8 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
                                 setFormData({ ...formData, answer: newAnswer });
                               }
                             }}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all ${
-                              formData.answer.includes(opt.id) ? "bg-green-500 text-white ring-2 ring-green-300" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}>{opt.id}</button>
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all ${formData.answer.includes(opt.id) ? "bg-green-500 text-white ring-2 ring-green-300" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }`}>{opt.id}</button>
                           <div className="flex-1 grid grid-cols-2 gap-2">
                             <Input
                               placeholder={`विकल्प ${opt.id} (Hindi)`}

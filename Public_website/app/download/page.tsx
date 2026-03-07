@@ -45,7 +45,10 @@ export default function DownloadPage() {
                                     Offline Mode Support
                                 </div>
                             </div>
-                            <button className="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2">
+                            <button
+                                onClick={() => alert('Download starting... (v1.0.0)')}
+                                className="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
+                            >
                                 Download .exe
                                 <ArrowRight className="w-4 h-4" />
                             </button>
@@ -64,7 +67,7 @@ export default function DownloadPage() {
                                 <div className="flex items-center text-sm text-slate-700">
                                     <CheckCircle className="w-4 h-4 text-green-500 mr-3" />
                                     Smooth Stylus Input
-                                    </div>
+                                </div>
                                 <div className="flex items-center text-sm text-slate-700">
                                     <CheckCircle className="w-4 h-4 text-green-500 mr-3" />
                                     Palm Rejection Ready
@@ -74,7 +77,10 @@ export default function DownloadPage() {
                                     Cloud Sync enabled
                                 </div>
                             </div>
-                            <button className="w-full py-4 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-2">
+                            <button
+                                onClick={() => alert('Download starting for Android...')}
+                                className="w-full py-4 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
+                            >
                                 Download .apk
                                 <ArrowRight className="w-4 h-4" />
                             </button>

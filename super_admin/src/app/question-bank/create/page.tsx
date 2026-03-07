@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -53,6 +53,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
+
 // Bilingual option type
 interface BilingualOption {
   id: string;
@@ -82,6 +91,7 @@ interface QuestionForm {
   answerRangeMin: string;
   answerRangeMax: string;
   visibility: string;
+  isGlobal: boolean;
   pointCost: number;
   externalId: string;
   syncCode: string;
@@ -109,6 +119,7 @@ const initialForm: QuestionForm = {
   answerRangeMin: "",
   answerRangeMax: "",
   visibility: "private",
+  isGlobal: true,
   pointCost: 5,
   externalId: "",
   syncCode: "",
@@ -180,29 +191,28 @@ export default function CreateQuestionPage() {
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [activeField, setActiveField] = useState<string>("question_hin");
+  const [folders, setFolders] = useState<any[]>([]);
+  const [exams, setExams] = useState<string[]>(["JEE Mains", "JEE Advanced", "NEET", "CUET", "Boards"]);
 
-  const subjects = [
-    { id: "phy", name: "Physics", chapters: ["Kinematics", "Laws of Motion", "Work, Energy and Power", "Rotational Motion", "Thermodynamics", "Waves", "Electromagnetism"] },
-    { id: "chem", name: "Chemistry", chapters: ["Chemical Bonding", "Acids and Bases", "Organic Chemistry", "Thermodynamics", "Carbohydrates", "Electrochemistry", "Coordination Compounds"] },
-    { id: "math", name: "Mathematics", chapters: ["Calculus", "Algebra", "Trigonometry", "Coordinate Geometry", "Probability", "Matrices", "Vectors"] },
-    { id: "bio", name: "Biology", chapters: ["Cell Structure", "Genetics", "Human Physiology", "Ecology", "Plant Physiology", "Biotechnology"] },
-  ];
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        const token = getToken();
+        const res = await fetch(`${API_URL}/qbank/folders`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) setFolders(data.data);
+      } catch (err) {
+        toast.error("Failed to fetch folders");
+      }
+    };
+    fetchFolders();
+  }, []);
 
-  const topics: Record<string, string[]> = {
-    "Kinematics": ["Uniform Motion", "Non-uniform Motion", "Projectile Motion", "Relative Motion"],
-    "Laws of Motion": ["Newton's First Law", "Newton's Second Law", "Newton's Third Law", "Friction"],
-    "Carbohydrates": ["Monosaccharides", "Disaccharides", "Polysaccharides", "Reactions of Glucose"],
-    "Calculus": ["Derivatives", "Integrals", "Limits", "Application of Derivatives"],
-  };
-
-  const exams = ["JEE Main", "JEE Advanced", "NEET", "UPSC", "GATE", "SSC", "CAT", "Olympiad"];
-
-  const getChapters = () => {
-    const subject = subjects.find((s) => s.name === formData.subject);
-    return subject ? subject.chapters : [];
-  };
-
-  const getTopics = () => topics[formData.chapter] || [];
+  const subjects = Array.from(new Set(folders.filter(f => f.depth === 0).map(f => f.name)));
+  const getChapters = () => folders.filter(f => f.depth === 1 && folders.find(p => p.id === f.parentId)?.name === formData.subject);
+  const getTopics = () => folders.filter(f => f.depth === 2 && f.parentId === folders.find(p => p.name === formData.chapter && p.depth === 1)?.id);
 
   const handleOptionChange = (id: string, field: "text_hin" | "text_eng", value: string) => {
     setOptions(options.map((opt) => opt.id === id ? { ...opt, [field]: value } : opt));
@@ -233,8 +243,8 @@ export default function CreateQuestionPage() {
   };
 
   // Insert helpers
-  const getFieldKey = (field: "question" | "solution") => 
-    field === "question" 
+  const getFieldKey = (field: "question" | "solution") =>
+    field === "question"
       ? (activeLangTab === "hin" ? "question_hin" : "question_eng")
       : (activeLangTab === "hin" ? "solution_hin" : "solution_eng");
 
@@ -279,15 +289,59 @@ export default function CreateQuestionPage() {
     return true;
   };
 
-  const handleSave = (publish: boolean = false) => {
+  const handleSave = async (publish: boolean = false) => {
     if (!isFormValid()) {
       toast.error("Please fill all required fields");
       return;
     }
-    const questionData = { ...formData, status: publish ? "published" : "draft" };
-    console.log("Question Data:", questionData);
-    toast.success(publish ? "Question published successfully!" : "Question saved as draft!");
-    router.push("/question-bank/questions");
+
+    try {
+      const token = getToken();
+
+      const folder = folders.find(f => f.name === formData.chapter && f.depth === 1);
+      const topic = folders.find(f => f.name === formData.topic && f.depth === 2 && f.parentId === folder?.id);
+
+      const payload = {
+        textEn: formData.question_eng,
+        textHi: formData.question_hin,
+        explanationEn: formData.solution_eng,
+        explanationHi: formData.solution_hin,
+        difficulty: formData.difficulty.toUpperCase(),
+        type: formData.questionType === 'mcq' ? 'MCQ_SINGLE' :
+          formData.questionType === 'multi_select' ? 'MCQ_MULTIPLE' :
+            formData.questionType === 'true_false' ? 'TRUE_FALSE' : 'FILL_IN_BLANK',
+        folderId: folder?.id,
+        topicId: topic?.id,
+        tags: formData.tags,
+        visibility: formData.visibility,
+        isGlobal: formData.isGlobal,
+        options: options.map((opt, index) => ({
+          textEn: opt.text_eng,
+          textHi: opt.text_hin,
+          isCorrect: formData.answer.includes(opt.id),
+          sortOrder: index
+        }))
+      };
+
+      const res = await fetch(`${API_URL}/qbank/questions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(publish ? "Question published successfully!" : "Question saved as draft!");
+        router.push("/question-bank/questions");
+      } else {
+        toast.error(data.message || "Failed to save question");
+      }
+    } catch (err) {
+      toast.error("An error occurred while saving");
+    }
   };
 
   return (
@@ -337,7 +391,7 @@ export default function CreateQuestionPage() {
                         <Select value={formData.subject} onValueChange={(v) => setFormData({ ...formData, subject: v, chapter: "", topic: "" })}>
                           <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
                           <SelectContent>
-                            {subjects.map((s) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                            {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -346,7 +400,7 @@ export default function CreateQuestionPage() {
                         <Select value={formData.chapter} onValueChange={(v) => setFormData({ ...formData, chapter: v, topic: "" })} disabled={!formData.subject}>
                           <SelectTrigger><SelectValue placeholder="Select chapter" /></SelectTrigger>
                           <SelectContent>
-                            {getChapters().map((ch) => <SelectItem key={ch} value={ch}>{ch}</SelectItem>)}
+                            {getChapters().map((ch) => <SelectItem key={ch.id} value={ch.name}>{ch.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -355,12 +409,12 @@ export default function CreateQuestionPage() {
                         <Select value={formData.topic} onValueChange={(v) => setFormData({ ...formData, topic: v })} disabled={!formData.chapter}>
                           <SelectTrigger><SelectValue placeholder="Select topic" /></SelectTrigger>
                           <SelectContent>
-                            {getTopics().map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            {getTopics().map((t) => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="space-y-2">
                         <Label>Difficulty <span className="text-red-500">*</span></Label>
@@ -513,9 +567,8 @@ export default function CreateQuestionPage() {
                                 setFormData({ ...formData, answer: newAnswer });
                               }
                             }}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all ${
-                              formData.answer.includes(opt.id) ? "bg-green-500 text-white ring-2 ring-green-300" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}>{opt.id}</button>
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all ${formData.answer.includes(opt.id) ? "bg-green-500 text-white ring-2 ring-green-300" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }`}>{opt.id}</button>
                           <div className="flex-1 grid grid-cols-2 gap-2">
                             <Input
                               placeholder={`विकल्प ${opt.id} (Hindi)`}
@@ -656,7 +709,18 @@ export default function CreateQuestionPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <Label>Question Scope</Label>
+                        <div className="flex gap-2">
+                          <Button type="button" variant={formData.isGlobal ? "default" : "outline"}
+                            className={`flex-1 ${formData.isGlobal ? "bg-blue-600 text-white hover:bg-blue-700" : ""}`}
+                            onClick={() => setFormData({ ...formData, isGlobal: true })}>🌍 Global</Button>
+                          <Button type="button" variant={!formData.isGlobal ? "default" : "outline"}
+                            className={`flex-1 ${!formData.isGlobal ? "bg-gray-600 text-white hover:bg-gray-700" : ""}`}
+                            onClick={() => setFormData({ ...formData, isGlobal: false })}>🏢 Org Only</Button>
+                        </div>
+                      </div>
                       <div className="space-y-2">
                         <Label>Visibility</Label>
                         <div className="flex gap-2">

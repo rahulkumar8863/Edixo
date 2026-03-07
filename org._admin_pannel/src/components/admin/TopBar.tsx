@@ -50,19 +50,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 const routeLabels: Record<string, string> = {
   "/": "Dashboard",
   "/analytics": "Analytics",
-  "/alerts": "Alerts",
-  "/organizations": "Organizations",
-  "/unique-ids": "Unique IDs",
-  "/billing": "Billing",
   "/question-bank": "Question Bank",
   "/mockbook": "MockBook",
-  "/digital-board": "Digital Board",
-  "/website": "Public Website CMS",
-  "/student-app": "Student App",
-  "/org-admin": "Org Admin Control",
-  "/users": "Users",
-  "/white-label": "White-Label",
-  "/audit-log": "Audit Log",
+  "/students": "Students",
+  "/batches": "Batches",
+  "/student-app": "Student App Control",
+  "/staff": "Staff Management",
+  "/billing": "Billing",
   "/settings": "Settings",
 };
 
@@ -70,33 +64,33 @@ const routeLabels: Record<string, string> = {
 const notifications = [
   {
     id: 1,
-    type: "org",
-    title: "New organization onboarded",
-    message: "Apex Academy has completed signup",
+    type: "admission",
+    title: "New Admission",
+    message: "Aryan Malhotra joined SSC Morning A1",
     time: "5 min ago",
     read: false,
   },
   {
     id: 2,
     type: "payment",
-    title: "Payment received",
-    message: "₹15,000 from Brilliant Coaching",
+    title: "Fee Payment Received",
+    message: "₹12,500 from Sneha Reddy (Banking B2)",
     time: "1 hour ago",
     read: false,
   },
   {
     id: 3,
     type: "alert",
-    title: "AI Service degraded",
-    message: "Response time increased to 320ms",
+    title: "Syllabus Alert",
+    message: "SSC Morning A1 is 15% behind schedule",
     time: "2 hours ago",
     read: true,
   },
   {
     id: 4,
-    type: "id",
-    title: "New Unique ID generated",
-    message: "GK-TCH-00892 for Apex Academy",
+    type: "staff",
+    title: "New Staff Member",
+    message: "Vikram Patel joined as Teacher",
     time: "3 hours ago",
     read: true,
   },
@@ -104,9 +98,9 @@ const notifications = [
 
 // Mock search results
 const searchResults = [
-  { type: "organization", name: "Apex Academy", id: "GK-ORG-00142" },
-  { type: "organization", name: "Brilliant Coaching", id: "GK-ORG-00089" },
-  { type: "user", name: "Rajesh Kumar", id: "GK-TCH-00892" },
+  { type: "student", name: "Rahul Sharma", id: "STU-00142" },
+  { type: "student", name: "Priya Singh", id: "STU-00089" },
+  { type: "user", name: "Rajesh Kumar (Teacher)", id: "TCH-00892" },
   { type: "question", name: "Newton's Laws of Motion", id: "Q-00001" },
   { type: "invoice", name: "INV-2026-001", id: "₹15,000" },
 ];
@@ -115,11 +109,11 @@ const searchResults = [
 const quickActions = [
   { label: "Create Question", icon: PlusCircle, href: "/question-bank/create", shortcut: "Q" },
   { label: "AI Generate Questions", icon: Sparkles, href: "/question-bank/ai-generate", shortcut: "G" },
-  { label: "New Organization", icon: Building2, href: "/organizations/new", shortcut: "N" },
+  { label: "Add Student", icon: GraduationCap, href: "/students/new", shortcut: "N" },
   { label: "Go to Dashboard", icon: LayoutDashboard, href: "/", shortcut: "D" },
   { label: "View Billing", icon: CreditCard, href: "/billing", shortcut: "B" },
-  { label: "Manage Users", icon: Users, href: "/users", shortcut: "U" },
-  { label: "Student App", icon: GraduationCap, href: "/student-app", shortcut: "S" },
+  { label: "Manage Staff", icon: Users, href: "/staff", shortcut: "U" },
+  { label: "Student App Settings", icon: Settings, href: "/student-app", shortcut: "S" },
 ];
 
 // Recent searches (persisted in localStorage)
@@ -130,7 +124,7 @@ export function TopBar() {
   const router = useRouter();
   const [commandOpen, setCommandOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Recent searches - initialize from localStorage on client
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     // This runs only on initial render
@@ -162,7 +156,7 @@ export function TopBar() {
   // Build breadcrumb
   const pathSegments = pathname.split("/").filter(Boolean);
   const breadcrumbs = [{ label: "Home", href: "/" }];
-  
+
   let currentPath = "";
   pathSegments.forEach((segment) => {
     currentPath += `/${segment}`;
@@ -188,11 +182,11 @@ export function TopBar() {
 
     // Navigate
     switch (type) {
-      case "organization":
-        router.push(`/organizations/${id}`);
+      case "student":
+        router.push(`/students/${id}`);
         break;
       case "user":
-        router.push(`/users?id=${id}`);
+        router.push(`/staff/${id}`);
         break;
       case "question":
         router.push(`/question-bank/questions`);
@@ -213,9 +207,9 @@ export function TopBar() {
   // Filter search results based on query
   const filteredResults = searchQuery
     ? searchResults.filter((r) =>
-        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.id.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.id.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : [];
 
   return (
@@ -229,11 +223,10 @@ export function TopBar() {
             )}
             <a
               href={crumb.href}
-              className={`${
-                index === breadcrumbs.length - 1
-                  ? "text-gray-900 font-medium"
-                  : "text-gray-500 hover:text-gray-700"
-              } transition-colors`}
+              className={`${index === breadcrumbs.length - 1
+                ? "text-gray-900 font-medium"
+                : "text-gray-500 hover:text-gray-700"
+                } transition-colors`}
             >
               {crumb.label}
             </a>
@@ -279,23 +272,21 @@ export function TopBar() {
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-3 rounded-lg border transition-colors cursor-pointer ${
-                  notification.read
-                    ? "bg-gray-50 border-gray-100"
-                    : "bg-brand-primary-tint border-brand-primary/20"
-                }`}
+                className={`p-3 rounded-lg border transition-colors cursor-pointer ${notification.read
+                  ? "bg-gray-50 border-gray-100"
+                  : "bg-brand-primary-tint border-brand-primary/20"
+                  }`}
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className={`w-2 h-2 rounded-full mt-2 ${
-                      notification.type === "org"
-                        ? "bg-green-500"
-                        : notification.type === "payment"
+                    className={`w-2 h-2 rounded-full mt-2 ${notification.type === "org"
+                      ? "bg-green-500"
+                      : notification.type === "payment"
                         ? "bg-orange-500"
                         : notification.type === "alert"
-                        ? "bg-yellow-500"
-                        : "bg-blue-500"
-                    }`}
+                          ? "bg-yellow-500"
+                          : "bg-blue-500"
+                      }`}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-gray-900">
@@ -324,13 +315,13 @@ export function TopBar() {
           <Button variant="ghost" className="flex items-center gap-2 px-2">
             <Avatar className="w-9 h-9">
               <AvatarImage src="/avatar.png" />
-              <AvatarFallback className="bg-brand-primary text-white text-sm font-semibold">
-                PA
+              <AvatarFallback className="bg-emerald-600 text-white text-sm font-semibold">
+                IA
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:block text-left">
-              <div className="text-sm font-medium text-gray-900">Platform Owner</div>
-              <div className="text-xs text-gray-500">Super Admin</div>
+              <div className="text-sm font-medium text-gray-900">Institute Admin</div>
+              <div className="text-xs text-gray-500">Org Admin</div>
             </div>
           </Button>
         </DropdownMenuTrigger>
@@ -366,7 +357,7 @@ export function TopBar() {
         />
         <CommandList className="max-h-[400px]">
           <CommandEmpty>No results found.</CommandEmpty>
-          
+
           {/* Show quick actions when query starts with > */}
           {searchQuery.startsWith(">") && (
             <CommandGroup heading="Quick Actions">
@@ -438,11 +429,11 @@ export function TopBar() {
           {/* Search results when there's a query */}
           {searchQuery && !searchQuery.startsWith(">") && (
             <>
-              {filteredResults.filter((r) => r.type === "organization").length > 0 && (
+              {filteredResults.filter((r) => r.type === "student").length > 0 && (
                 <>
-                  <CommandGroup heading="Organizations">
+                  <CommandGroup heading="Students">
                     {filteredResults
-                      .filter((r) => r.type === "organization")
+                      .filter((r) => r.type === "student")
                       .map((result) => (
                         <CommandItem
                           key={result.id}
@@ -450,7 +441,7 @@ export function TopBar() {
                           className="flex items-center justify-between"
                         >
                           <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-blue-500" />
+                            <GraduationCap className="w-4 h-4 text-blue-500" />
                             <span>{result.name}</span>
                           </div>
                           <span className="mono text-xs text-gray-400">{result.id}</span>
@@ -460,7 +451,7 @@ export function TopBar() {
                   <CommandSeparator />
                 </>
               )}
-              
+
               {filteredResults.filter((r) => r.type === "user").length > 0 && (
                 <>
                   <CommandGroup heading="Users">
@@ -483,7 +474,7 @@ export function TopBar() {
                   <CommandSeparator />
                 </>
               )}
-              
+
               {filteredResults.filter((r) => r.type === "question").length > 0 && (
                 <>
                   <CommandGroup heading="Questions">
@@ -506,7 +497,7 @@ export function TopBar() {
                   <CommandSeparator />
                 </>
               )}
-              
+
               {filteredResults.filter((r) => r.type === "invoice").length > 0 && (
                 <CommandGroup heading="Invoices">
                   {filteredResults

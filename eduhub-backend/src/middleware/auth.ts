@@ -1,13 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { redis, redisKeys } from '../config/redis';
+import { safeRedisGet, redisKeys } from '../config/redis';
 import { AppError } from './errorHandler';
 
 export interface JwtPayload {
     userId: string;
     role: string;
     orgId?: string;
+    orgDbId?: string;
     staffId?: string;
     studentId?: string;
     permissions?: string[];
@@ -40,7 +41,7 @@ export const authenticate = async (
         if (!token) throw new AppError('Invalid token format', 401);
 
         // Check blacklist
-        const isBlacklisted = await redis.get(redisKeys.tokenBlacklist(token));
+        const isBlacklisted = await safeRedisGet(redisKeys.tokenBlacklist(token));
         if (isBlacklisted) throw new AppError('Token has been revoked', 401);
 
         // Decode to pick the right secret
@@ -86,7 +87,7 @@ export const requireOrgAccess = (
 
     if (user.role === 'SUPER_ADMIN') {
         // SA can access any org — orgId comes from params or org-view token
-        const orgId = req.params.orgId || user.orgViewOrgId || req.headers['x-org-view-id'] as string;
+        const orgId = (req.params.orgId || user.orgViewOrgId || req.headers['x-org-view-id']) as string | undefined;
         if (orgId) req.user!.orgId = orgId;
         return next();
     }

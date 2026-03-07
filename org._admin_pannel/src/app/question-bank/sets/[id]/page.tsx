@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -38,54 +38,14 @@ import { QuestionSetExportModal } from "@/components/set-system/QuestionSetExpor
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Mock set data
-const mockSetData = {
-  id: "set-482931",
-  set_code: "482931",
-  password: "738291",
-  name: "Mathematics — Algebra & Calculus",
-  description: "25 questions covering algebra equations, calculus fundamentals, and integration problems.",
-  subject: "Mathematics",
-  chapter: "Algebra",
-  visibility: "private",
-  questions: 25,
-  createdAt: "Mar 1, 2026",
-  createdBy: "Admin",
-  accessCount: 48,
-  downloadCount: 12,
-  expiresAt: null,
-  allowDownload: true,
-  showSolutions: false,
-  solutionRevealAt: null,
-};
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-// Mock questions
-const mockQuestions = [
-  { id: "Q-00001", text: "If α and β are roots of x²-5x+6=0, find α²+β²", difficulty: "easy", type: "mcq" },
-  { id: "Q-00002", text: "The value of ∫₀¹ x² dx is...", difficulty: "medium", type: "integer" },
-  { id: "Q-00003", text: "Find the derivative of sin(x)cos(x)", difficulty: "hard", type: "mcq" },
-  { id: "Q-00004", text: "Solve: 2x + 5 = 15", difficulty: "easy", type: "mcq" },
-  { id: "Q-00005", text: "Find the area under the curve y=x² from 0 to 2", difficulty: "medium", type: "integer" },
-];
-
-// Mock linked content
-const linkedMockTests = [
-  { id: "MOCK-295018", name: "SSC CGL Full Mock — March 2026", attempts: 48 },
-  { id: "MOCK-384729", name: "Railway NTPC Mock Test", attempts: 12 },
-  { id: "MOCK-493820", name: "UPSC Prelims Practice", attempts: 0 },
-];
-
-const linkedEBooks = [
-  { id: "BOOK-103847", name: "SSC Practice Book", downloads: 23 },
-];
-
-// Mock access log
-const accessLog = [
-  { id: "1", user: "Rahul Kumar", source: "PIN", ip: "192.168.1.1", timestamp: "Mar 2, 2026 14:30" },
-  { id: "2", user: "Priya Singh", source: "Org Login", ip: "192.168.1.2", timestamp: "Mar 2, 2026 12:15" },
-  { id: "3", user: "Amit Sharma", source: "Share", ip: "192.168.1.3", timestamp: "Mar 1, 2026 18:45" },
-  { id: "4", user: "Guest", source: "PIN", ip: "192.168.1.4", timestamp: "Mar 1, 2026 10:20" },
-];
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
 
 // Difficulty badge
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
@@ -127,15 +87,47 @@ export default function SetDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("questions");
+  const [data, setData] = useState<any>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSet = async () => {
+      try {
+        const token = getToken();
+        setIsLoading(true);
+        const res = await fetch(`${API_URL}/qbank/sets/${setId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setData(json.data?.set);
+          setQuestions(json.data?.questions || []);
+        } else {
+          toast.error("Failed to fetch set details");
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+        toast.error("An error occurred while fetching details");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (setId) {
+      fetchSet();
+    }
+  }, [setId]);
 
   // Copy handlers
   const copyId = () => {
-    navigator.clipboard.writeText(mockSetData.set_code);
+    if (!data) return;
+    navigator.clipboard.writeText(data.code);
     toast.success("SET ID copied!");
   };
 
   const copyPassword = () => {
-    navigator.clipboard.writeText(mockSetData.password);
+    if (!data) return;
+    navigator.clipboard.writeText(data.password);
     toast.success("Password copied!");
   };
 
@@ -162,411 +154,388 @@ export default function SetDetailPage() {
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Link href="/question-bank/sets" className="hover:text-[#F4511E]">Question Sets</Link>
               <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-900 font-medium">{mockSetData.name}</span>
+              <span className="text-gray-900 font-medium">{data?.name || "Loading..."}</span>
             </div>
 
-            {/* Header Card */}
-            <Card>
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <h1 className="text-2xl font-bold text-gray-900">{mockSetData.name}</h1>
-                    <p className="text-gray-500">{mockSetData.description}</p>
-                  </div>
-                  <VisibilityBadge visibility={mockSetData.visibility} />
-                </div>
-
-                {/* ID and Password Row */}
-                <div className="flex flex-wrap items-center gap-6 py-4 border-y">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-500">ID:</span>
-                    <code className="font-mono text-lg bg-gray-50 px-3 py-1 rounded">{mockSetData.set_code}</code>
-                    <Button variant="ghost" size="sm" onClick={copyId}>
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-500">Password:</span>
-                    <code className="font-mono text-lg bg-gray-50 px-3 py-1 rounded">
-                      {showPassword ? mockSetData.password : "••••••"}
-                    </code>
-                    <Button variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)}>
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </Button>
-                    {showPassword && (
-                      <Button variant="ghost" size="sm" onClick={copyPassword}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={resetPassword}>
-                      <RefreshCw className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Stats Row */}
-                <div className="flex items-center gap-6 text-sm text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <Layers className="w-4 h-4" />
-                    <span>{mockSetData.questions} Questions</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{mockSetData.accessCount} accesses</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Download className="w-4 h-4" />
-                    <span>{mockSetData.downloadCount} downloads</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>Created {mockSetData.createdAt}</span>
-                  </div>
-                </div>
-
-                {/* Actions Row */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button variant="outline" onClick={() => router.push(`/question-bank/sets/${setId}/edit`)}>
-                    <Edit className="w-4 h-4 mr-2" /> Edit
-                  </Button>
-                  <Button variant="outline">
-                    <Layers className="w-4 h-4 mr-2" /> Duplicate
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowShareModal(true)}>
-                    <Share2 className="w-4 h-4 mr-2" /> Share
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowExportModal(true)}>
-                    <Download className="w-4 h-4 mr-2" /> Export
-                  </Button>
-                  <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
-                    <Trash2 className="w-4 h-4 mr-2" /> Delete
-                  </Button>
-                  <div className="flex-1" />
-                  <Link href="/mocktests/create-from-sets">
-                    <Button className="bg-[#F4511E] hover:bg-[#E64A19]">
-                      <Plus className="w-4 h-4 mr-2" /> Create MockTest
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="bg-white border">
-                <TabsTrigger value="questions">Questions</TabsTrigger>
-                <TabsTrigger value="used-in">Used In</TabsTrigger>
-                <TabsTrigger value="share">Share</TabsTrigger>
-                <TabsTrigger value="access-log">Access Log</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
-
-              {/* Questions Tab */}
-              <TabsContent value="questions" className="mt-4">
+            {isLoading ? (
+              <div className="flex justify-center p-12">
+                <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
+              </div>
+            ) : !data ? (
+              <div className="text-center p-12 text-gray-500">Set not found</div>
+            ) : (
+              <>
+                {/* Header Card */}
                 <Card>
-                  <CardContent className="p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">Questions ({mockQuestions.length})</h3>
-                        <Badge className="bg-[#F4511E]">Drag to reorder</Badge>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h1 className="text-2xl font-bold text-gray-900">{data.name}</h1>
+                        <p className="text-gray-500">{data.description || "No description"}</p>
                       </div>
-                      <Button variant="outline" size="sm">
-                        <Plus className="w-4 h-4 mr-2" /> Add Questions
-                      </Button>
+                      <VisibilityBadge visibility={data.isGlobal === false ? "org_only" : "public"} />
                     </div>
 
-                    <div className="space-y-2">
-                      {mockQuestions.map((q, index) => (
-                        <div
-                          key={q.id}
-                          draggable
-                          onDragStart={() => handleDragStart(index)}
-                          onDragOver={(e) => handleDragOver(e, index)}
-                          onDragEnd={handleDragEnd}
-                          className={cn(
-                            "flex items-center gap-3 p-3 bg-white border rounded-lg cursor-move",
-                            draggedIndex === index && "opacity-50 shadow-lg"
-                          )}
-                        >
-                          <GripVertical className="w-4 h-4 text-gray-400" />
-                          <span className="text-xs text-gray-500 w-12">Q{index + 1}</span>
-                          <div className="flex-1">
-                            <p className="text-sm text-gray-700">{q.text}</p>
-                          </div>
-                          <TypeBadge type={q.type} />
-                          <DifficultyBadge difficulty={q.difficulty} />
-                        </div>
-                      ))}
+                    {/* ID and Password Row */}
+                    <div className="flex flex-wrap items-center gap-6 py-4 border-y">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-500">ID:</span>
+                        <code className="font-mono text-lg bg-gray-50 px-3 py-1 rounded">{data.code}</code>
+                        <Button variant="ghost" size="sm" onClick={copyId}>
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-500">Password:</span>
+                        <code className="font-mono text-lg bg-gray-50 px-3 py-1 rounded">
+                          {showPassword ? data.password : "••••••"}
+                        </code>
+                        <Button variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)}>
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </Button>
+                        {showPassword && (
+                          <Button variant="ghost" size="sm" onClick={copyPassword}>
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={resetPassword}>
+                          <RefreshCw className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
-              {/* Used In Tab */}
-              <TabsContent value="used-in" className="mt-4 space-y-6">
-                {/* Live Sync Badge */}
-                <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <Zap className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-green-700 font-medium">Live-synced — Updates automatically reflect in all linked content</span>
-                </div>
-
-                {/* MockTests */}
-                <Card>
-                  <CardContent className="p-4 space-y-3">
-                    <h3 className="font-medium text-gray-900">Linked MockTests ({linkedMockTests.length})</h3>
-                    {linkedMockTests.map((mock) => (
-                      <div key={mock.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
-                            <Layers className="w-5 h-5 text-[#F4511E]" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{mock.name}</p>
-                            <p className="text-xs text-gray-500">{mock.id} • {mock.attempts} attempts</p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
+                    {/* Stats Row */}
+                    <div className="flex items-center gap-6 text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Layers className="w-4 h-4" />
+                        <span>{questions.length} Questions</span>
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* eBooks */}
-                <Card>
-                  <CardContent className="p-4 space-y-3">
-                    <h3 className="font-medium text-gray-900">Linked eBooks ({linkedEBooks.length})</h3>
-                    {linkedEBooks.map((book) => (
-                      <div key={book.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                            <Download className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{book.name}</p>
-                            <p className="text-xs text-gray-500">{book.id} • {book.downloads} downloads</p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
+                      <div className="flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        <span>0 accesses</span>
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                      <div className="flex items-center gap-1">
+                        <Download className="w-4 h-4" />
+                        <span>0 downloads</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>Created {new Date(data.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
 
-              {/* Share Tab */}
-              <TabsContent value="share" className="mt-4">
-                <Card>
-                  <CardContent className="p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">Shared With</h3>
-                      <Button onClick={() => setShowShareModal(true)}>
+                    {/* Actions Row */}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button variant="outline" onClick={() => router.push(`/question-bank/sets/${setId}/edit`)}>
+                        <Edit className="w-4 h-4 mr-2" /> Edit
+                      </Button>
+                      <Button variant="outline">
+                        <Layers className="w-4 h-4 mr-2" /> Duplicate
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowShareModal(true)}>
                         <Share2 className="w-4 h-4 mr-2" /> Share
                       </Button>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-sm text-gray-500 mb-2">Users (2)</p>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                <Users className="w-4 h-4 text-orange-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium">Rahul Kumar</p>
-                                <p className="text-xs text-gray-500">Mar 1 • 2 accesses</p>
-                              </div>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-red-500">Revoke</Button>
-                          </div>
-                          <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                <Users className="w-4 h-4 text-orange-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium">Amit Sharma</p>
-                                <p className="text-xs text-gray-500">Mar 2 • 5 accesses</p>
-                              </div>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-red-500">Revoke</Button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-gray-500 mb-2">Organizations (1)</p>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                <Building2 className="w-4 h-4 text-blue-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium">Apex Academy</p>
-                                <p className="text-xs text-gray-500">48 members</p>
-                              </div>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-red-500">Revoke</Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Access Log Tab */}
-              <TabsContent value="access-log" className="mt-4">
-                <Card>
-                  <CardContent className="p-0">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b bg-gray-50">
-                          <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Date/Time</th>
-                          <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">User</th>
-                          <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Method</th>
-                          <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">IP</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {accessLog.map((log) => (
-                          <tr key={log.id} className="border-b last:border-0">
-                            <td className="p-4 text-sm text-gray-600">{log.timestamp}</td>
-                            <td className="p-4 text-sm font-medium">{log.user}</td>
-                            <td className="p-4">
-                              <Badge variant="outline">{log.source}</Badge>
-                            </td>
-                            <td className="p-4 text-sm text-gray-500">{log.ip}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Settings Tab */}
-              <TabsContent value="settings" className="mt-4">
-                <Card>
-                  <CardContent className="p-6 space-y-6">
-                    <div>
-                      <h3 className="font-medium mb-4">Visibility Settings</h3>
-                      <div className="space-y-3">
-                        {["private", "org_only", "public"].map((vis) => (
-                          <label
-                            key={vis}
-                            className={cn(
-                              "flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all",
-                              mockSetData.visibility === vis ? "border-[#F4511E] bg-orange-50" : "hover:border-gray-300"
-                            )}
-                          >
-                            <input
-                              type="radio"
-                              name="visibility"
-                              value={vis}
-                              checked={mockSetData.visibility === vis}
-                              onChange={() => {}}
-                              className="text-[#F4511E]"
-                            />
-                            <div>
-                              <p className="font-medium capitalize">{vis.replace("_", "-")}</p>
-                              <p className="text-sm text-gray-500">
-                                {vis === "private" && "Only accessible with PIN"}
-                                {vis === "org_only" && "Org members + PIN access"}
-                                {vis === "public" && "Listed on public website"}
-                              </p>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="border-t pt-6">
-                      <h3 className="font-medium mb-4">Permissions</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Allow PDF Download</p>
-                            <p className="text-sm text-gray-500">Users can download content as PDF</p>
-                          </div>
-                          <Switch checked={mockSetData.allowDownload} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Show Solutions</p>
-                            <p className="text-sm text-gray-500">Display solutions after submission</p>
-                          </div>
-                          <Switch checked={mockSetData.showSolutions} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t pt-6">
-                      <h3 className="font-medium mb-4">Expiry</h3>
-                      <div className="flex items-center gap-4">
-                        <Switch />
-                        <div className="flex-1">
-                          <Input type="datetime-local" disabled />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t pt-6">
-                      <h3 className="font-medium mb-4 text-red-600">Danger Zone</h3>
-                      <div className="flex gap-3">
-                        <Button variant="outline">Archive Set</Button>
-                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
-                          Delete Set
+                      <Button variant="outline" onClick={() => setShowExportModal(true)}>
+                        <Download className="w-4 h-4 mr-2" /> Export
+                      </Button>
+                      <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+                        <Trash2 className="w-4 h-4 mr-2" /> Delete
+                      </Button>
+                      <div className="flex-1" />
+                      <Link href="/mocktests/create-from-sets">
+                        <Button className="bg-[#F4511E] hover:bg-[#E64A19]">
+                          <Plus className="w-4 h-4 mr-2" /> Create MockTest
                         </Button>
-                      </div>
+                      </Link>
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
+
+                {/* Tabs */}
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="bg-white border">
+                    <TabsTrigger value="questions">Questions</TabsTrigger>
+                    <TabsTrigger value="used-in">Used In</TabsTrigger>
+                    <TabsTrigger value="share">Share</TabsTrigger>
+                    <TabsTrigger value="access-log">Access Log</TabsTrigger>
+                    <TabsTrigger value="settings">Settings</TabsTrigger>
+                  </TabsList>
+
+                  {/* Questions Tab */}
+                  <TabsContent value="questions" className="mt-4">
+                    <Card>
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">Questions ({questions.length})</h3>
+                            <Badge className="bg-[#F4511E]">Drag to reorder</Badge>
+                          </div>
+                          <Button variant="outline" size="sm">
+                            <Plus className="w-4 h-4 mr-2" /> Add Questions
+                          </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {questions.map((q, index) => (
+                            <div
+                              key={q.id || index}
+                              draggable
+                              onDragStart={() => handleDragStart(index)}
+                              onDragOver={(e) => handleDragOver(e, index)}
+                              onDragEnd={handleDragEnd}
+                              className={cn(
+                                "flex items-center gap-3 p-3 bg-white border rounded-lg cursor-move",
+                                draggedIndex === index && "opacity-50 shadow-lg"
+                              )}
+                            >
+                              <GripVertical className="w-4 h-4 text-gray-400" />
+                              <span className="text-xs text-gray-500 w-12">Q{index + 1}</span>
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: q.question_eng || q.question_hin || "Question text" }} />
+                              </div>
+                              <TypeBadge type={q.type || 'mcq'} />
+                              <DifficultyBadge difficulty={q.difficulty || 'medium'} />
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Used In Tab */}
+                  <TabsContent value="used-in" className="mt-4 space-y-6">
+                    {/* Live Sync Badge */}
+                    <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                      <Zap className="w-5 h-5 text-green-600" />
+                      <span className="text-sm text-green-700 font-medium">Live-synced — Updates automatically reflect in all linked content</span>
+                    </div>
+
+                    {/* MockTests */}
+                    <Card>
+                      <CardContent className="p-4 space-y-3">
+                        <h3 className="font-medium text-gray-900">Linked MockTests (0)</h3>
+                        <div className="text-sm text-gray-500 italic">No mock tests currently linked to this set.</div>
+                      </CardContent>
+                    </Card>
+
+                    {/* eBooks */}
+                    <Card>
+                      <CardContent className="p-4 space-y-3">
+                        <h3 className="font-medium text-gray-900">Linked eBooks (0)</h3>
+                        <div className="text-sm text-gray-500 italic">No eBooks currently linked to this set.</div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Share Tab */}
+                  <TabsContent value="share" className="mt-4">
+                    <Card>
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium">Shared With</h3>
+                          <Button onClick={() => setShowShareModal(true)}>
+                            <Share2 className="w-4 h-4 mr-2" /> Share
+                          </Button>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm text-gray-500 mb-2">Users (2)</p>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                                    <Users className="w-4 h-4 text-orange-600" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">Rahul Kumar</p>
+                                    <p className="text-xs text-gray-500">Mar 1 • 2 accesses</p>
+                                  </div>
+                                </div>
+                                <Button variant="ghost" size="sm" className="text-red-500">Revoke</Button>
+                              </div>
+                              <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                                    <Users className="w-4 h-4 text-orange-600" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">Amit Sharma</p>
+                                    <p className="text-xs text-gray-500">Mar 2 • 5 accesses</p>
+                                  </div>
+                                </div>
+                                <Button variant="ghost" size="sm" className="text-red-500">Revoke</Button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-sm text-gray-500 mb-2">Organizations (1)</p>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <Building2 className="w-4 h-4 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">Apex Academy</p>
+                                    <p className="text-xs text-gray-500">48 members</p>
+                                  </div>
+                                </div>
+                                <Button variant="ghost" size="sm" className="text-red-500">Revoke</Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Access Log Tab */}
+                  <TabsContent value="access-log" className="mt-4">
+                    <Card>
+                      <CardContent className="p-0">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b bg-gray-50">
+                              <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Date/Time</th>
+                              <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">User</th>
+                              <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Method</th>
+                              <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">IP</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b last:border-0">
+                              <td colSpan={4} className="p-8 text-center text-gray-500">No access logs available for this set.</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Settings Tab */}
+                  <TabsContent value="settings" className="mt-4">
+                    <Card>
+                      <CardContent className="p-6 space-y-6">
+                        <div>
+                          <h3 className="font-medium mb-4">Visibility Settings</h3>
+                          <div className="space-y-3">
+                            {["private", "org_only", "public"].map((vis) => (
+                              <label
+                                key={vis}
+                                className={cn(
+                                  "flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all",
+                                  (data?.isGlobal ? "public" : "org_only") === vis ? "border-[#F4511E] bg-orange-50" : "hover:border-gray-300"
+                                )}
+                              >
+                                <input
+                                  type="radio"
+                                  name="visibility"
+                                  value={vis}
+                                  checked={(data?.isGlobal ? "public" : "org_only") === vis}
+                                  onChange={() => { }}
+                                  className="text-[#F4511E]"
+                                />
+                                <div>
+                                  <p className="font-medium capitalize">{vis.replace("_", "-")}</p>
+                                  <p className="text-sm text-gray-500">
+                                    {vis === "private" && "Only accessible with PIN"}
+                                    {vis === "org_only" && "Org members + PIN access"}
+                                    {vis === "public" && "Listed on public website"}
+                                  </p>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-6">
+                          <h3 className="font-medium mb-4">Permissions</h3>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">Allow PDF Download</p>
+                                <p className="text-sm text-gray-500">Users can download content as PDF</p>
+                              </div>
+                              <Switch checked={true} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">Show Solutions</p>
+                                <p className="text-sm text-gray-500">Display solutions after submission</p>
+                              </div>
+                              <Switch checked={false} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-6">
+                          <h3 className="font-medium mb-4">Expiry</h3>
+                          <div className="flex items-center gap-4">
+                            <Switch />
+                            <div className="flex-1">
+                              <Input type="datetime-local" disabled />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-6">
+                          <h3 className="font-medium mb-4 text-red-600">Danger Zone</h3>
+                          <div className="flex gap-3">
+                            <Button variant="outline">Archive Set</Button>
+                            <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+                              Delete Set
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </>
+            )}
           </div>
         </main>
       </div>
 
       {/* Share Modal */}
-      <ShareModal
-        open={showShareModal}
-        onOpenChange={setShowShareModal}
-        contentId={mockSetData.set_code}
-        contentPassword={mockSetData.password}
-        contentName={mockSetData.name}
-        contentType="set"
-      />
+      {data && (
+        <ShareModal
+          open={showShareModal}
+          onOpenChange={setShowShareModal}
+          contentId={data?.code}
+          contentPassword={data?.password}
+          contentName={data?.name}
+          contentType="set"
+        />
+      )}
 
       {/* Export Modal */}
-      <QuestionSetExportModal
-        open={showExportModal}
-        onOpenChange={setShowExportModal}
-        questionSet={{
-          id: mockSetData.id,
-          set_code: mockSetData.set_code,
-          name: mockSetData.name,
-          description: mockSetData.description,
-          subject: mockSetData.subject,
-          chapter: mockSetData.chapter,
-          questions: mockQuestions.map((q, index) => ({
-            id: q.id,
-            text: q.text,
-            difficulty: q.difficulty,
-            type: q.type,
-            options: q.type === 'mcq' ? ['Option A', 'Option B', 'Option C', 'Option D'] : undefined,
-            answer: q.type === 'mcq' ? 'A' : q.type === 'integer' ? '42' : undefined,
-            explanation: 'This is the explanation for the question.',
-            marks: 2,
-          })),
-        }}
-      />
+      {data && (
+        <QuestionSetExportModal
+          open={showExportModal}
+          onOpenChange={setShowExportModal}
+          questionSet={{
+            id: data?.id,
+            set_code: data?.code,
+            name: data?.name,
+            description: data?.description || "",
+            subject: data?.subject,
+            chapter: data?.chapter || "",
+            questions: questions.map((q: any) => ({
+              id: q.id,
+              text: q.question_eng || q.question_hin || "",
+              difficulty: q.difficulty || "medium",
+              type: q.type || "mcq",
+              options: q.type === 'mcq' ? [q.option1_eng, q.option2_eng, q.option3_eng, q.option4_eng].filter(Boolean) : undefined,
+              answer: q.answer || '1',
+              explanation: q.solution_eng || 'No explanation available.',
+              marks: q.marks || 2,
+            })),
+          }}
+        />
+      )}
     </div>
   );
 }

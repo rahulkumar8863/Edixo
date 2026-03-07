@@ -11,8 +11,8 @@ import {
   AlignStartVertical,
   AlignCenterVertical,
   AlignEndVertical,
-  DistributeHorizontal,
-  DistributeVertical,
+  AlignHorizontalDistributeCenter,
+  AlignVerticalDistributeCenter,
 } from "lucide-react";
 
 interface Props {
@@ -29,7 +29,7 @@ export function MultiSelectProperties({ elements }: Props) {
       {/* Align Section */}
       <div className="space-y-3">
         <Label className="text-xs text-gray-500 font-semibold">ALIGN</Label>
-        
+
         {/* Horizontal Alignment */}
         <div className="space-y-1">
           <span className="text-[10px] text-gray-400">Horizontal</span>
@@ -44,7 +44,7 @@ export function MultiSelectProperties({ elements }: Props) {
               <AlignRight className="w-4 h-4" />
             </Button>
             <Button variant="outline" size="icon" className="h-8 w-8">
-              <DistributeHorizontal className="w-4 h-4" />
+              <AlignHorizontalDistributeCenter className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -63,7 +63,7 @@ export function MultiSelectProperties({ elements }: Props) {
               <AlignEndVertical className="w-4 h-4" />
             </Button>
             <Button variant="outline" size="icon" className="h-8 w-8">
-              <DistributeVertical className="w-4 h-4" />
+              <AlignVerticalDistributeCenter className="w-4 h-4" />
             </Button>
           </div>
         </div>

@@ -235,10 +235,10 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="supabaseUrl">Supabase Project URL</Label>
+                  <Label htmlFor="awsRegion">AWS Region</Label>
                   <Input
-                    id="supabaseUrl"
-                    placeholder="https://xxxx.supabase.co"
+                    id="awsRegion"
+                    placeholder="ap-south-1"
                     className="input-field"
                   />
                 </div>

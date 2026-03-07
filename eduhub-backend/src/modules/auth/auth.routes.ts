@@ -31,6 +31,45 @@ async function trackFailedLogin(key: string) {
     return attempts;
 }
 
+// ─── POST /api/auth/register ─────────────────────────────────
+router.post('/register', async (req, res, next) => {
+    try {
+        const schema = z.object({
+            email: z.string().email(),
+            password: z.string().min(6),
+            name: z.string().min(2),
+        });
+        const body = schema.parse(req.body);
+
+        const exists = await prisma.user.findUnique({ where: { email: body.email } });
+        if (exists) throw new AppError('Email already registered', 400);
+
+        const passwordHash = await bcrypt.hash(body.password, 12);
+        const user = await prisma.user.create({
+            data: {
+                email: body.email,
+                passwordHash,
+                role: 'ORG_STAFF', // Default for public signup
+            },
+        });
+
+        const tokenPayload = {
+            userId: user.id,
+            role: user.role,
+        };
+
+        const accessToken = generateToken(tokenPayload, env.JWT_SECRET, env.JWT_EXPIRES_IN);
+
+        res.status(201).json({
+            success: true,
+            data: { accessToken, user: tokenPayload },
+            message: 'Registration successful',
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
 // ─── POST /api/auth/login ────────────────────────────────────
 router.post('/login', async (req, res, next) => {
     try {

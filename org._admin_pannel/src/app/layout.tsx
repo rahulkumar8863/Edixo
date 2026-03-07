@@ -16,9 +16,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EduHub Super Admin",
-  description: "Multi-tenant SaaS EdTech Platform Management Panel",
-  keywords: ["EduHub", "EdTech", "Super Admin", "Education", "SaaS"],
+  title: "EduHub Org Admin",
+  description: "Organization Management Panel",
+  keywords: ["EduHub", "EdTech", "Org Admin", "Education", "SaaS"],
   authors: [{ name: "EduHub Team" }],
   icons: {
     icon: "/logo.svg",

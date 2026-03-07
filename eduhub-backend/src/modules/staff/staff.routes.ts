@@ -31,11 +31,13 @@ router.post('/', async (req, res, next) => {
         const body = schema.parse(req.body);
         const org = await prisma.organization.findFirstOrThrow({ where: { orgId: req.user!.orgId } });
 
-        const count = await prisma.orgStaff.count({ where: { orgId: org.id } });
+        // Generate Staff ID: GK-TCH/STF-XXXXX (Global unique)
+        const globalCount = await prisma.orgStaff.count();
+        const timestamp = Date.now().toString().slice(-3);
         const isTeacher = body.role === 'TEACHER' || body.role === 'CONTENT_MANAGER';
         const staffId = isTeacher
-            ? `GK-TCH-${String(count + 1).padStart(5, '0')}`
-            : `GK-STF-${String(count + 1).padStart(5, '0')}`;
+            ? `GK-TCH-${String(globalCount + 1).padStart(5, '0')}-${timestamp}`
+            : `GK-STF-${String(globalCount + 1).padStart(5, '0')}-${timestamp}`;
 
         const passwordHash = await bcrypt.hash(body.password, 12);
 

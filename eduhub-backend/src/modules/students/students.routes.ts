@@ -12,8 +12,8 @@ router.use(authenticate, requireOrgAccess);
 router.get('/', async (req, res, next) => {
     try {
         const { page = 1, limit = 20, search, batchId, isActive } = req.query;
-        const orgId = req.user!.orgDbId || req.params.orgId;
-        const org = await prisma.organization.findFirst({ where: { orgId: req.user!.orgId } });
+        const orgId = req.user?.orgDbId || (req.params as any).orgId;
+        const org = await prisma.organization.findFirst({ where: { orgId: req.user?.orgId } });
         if (!org) throw new AppError('Organization not found', 404);
 
         const skip = (Number(page) - 1) * Number(limit);
@@ -77,9 +77,10 @@ router.post('/', async (req, res, next) => {
             throw new AppError(`Plan limit reached: ${planLimits[org.plan]} students max for ${org.plan} plan`, 403);
         }
 
-        // Generate Student ID: GK-STU-XXXXX
-        const count = await prisma.student.count({ where: { orgId: org.id } });
-        const studentId = `GK-STU-${String(count + 1).padStart(5, '0')}`;
+        // Generate Student ID: GK-STU-XXXXX (Global unique)
+        const globalCount = await prisma.student.count();
+        const timestamp = Date.now().toString().slice(-3);
+        const studentId = `GK-STU-${String(globalCount + 1).padStart(5, '0')}-${timestamp}`;
 
         const passwordHash = await bcrypt.hash(body.password, 12);
 

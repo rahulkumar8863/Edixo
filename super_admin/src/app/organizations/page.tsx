@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -63,113 +63,13 @@ import {
 import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
 
-// Mock organization data
-const organizations = [
-  {
-    id: "GK-ORG-00142",
-    name: "Apex Academy",
-    logo: null,
-    domain: "apex-academy.com",
-    appType: "BOTH",
-    plan: "Medium",
-    status: "Active",
-    teachers: 24,
-    students: 847,
-    mrr: "₹15,000",
-    renewal: "Mar 15, 2026",
-  },
-  {
-    id: "GK-ORG-00141",
-    name: "Brilliant Coaching",
-    logo: null,
-    domain: "brilliantcoaching.in",
-    appType: "STUDENT",
-    plan: "Small",
-    status: "Trial",
-    teachers: 5,
-    students: 120,
-    mrr: "₹0",
-    renewal: "Mar 10, 2026",
-  },
-  {
-    id: "GK-ORG-00140",
-    name: "Excel Institute",
-    logo: null,
-    domain: "excelinstitute.edu",
-    appType: "BOTH",
-    plan: "Large",
-    status: "Active",
-    teachers: 67,
-    students: 2145,
-    mrr: "₹40,000",
-    renewal: "Apr 01, 2026",
-  },
-  {
-    id: "GK-ORG-00139",
-    name: "Success Classes",
-    logo: null,
-    domain: "successclasses.com",
-    appType: "MOCKBOOK",
-    plan: "Medium",
-    status: "Active",
-    teachers: 18,
-    students: 520,
-    mrr: "₹15,000",
-    renewal: "Mar 25, 2026",
-  },
-  {
-    id: "GK-ORG-00138",
-    name: "Vision Academy",
-    logo: null,
-    domain: "visionacademy.in",
-    appType: "BOTH",
-    plan: "Small",
-    status: "Suspended",
-    teachers: 8,
-    students: 180,
-    mrr: "₹5,000",
-    renewal: "Feb 28, 2026",
-  },
-  {
-    id: "GK-ORG-00137",
-    name: "Prime Tutorials",
-    logo: null,
-    domain: "primetutorials.com",
-    appType: "BOTH",
-    plan: "Enterprise",
-    status: "Active",
-    teachers: 150,
-    students: 4500,
-    mrr: "₹75,000",
-    renewal: "May 15, 2026",
-  },
-  {
-    id: "GK-ORG-00136",
-    name: "Knowledge Park",
-    logo: null,
-    domain: "knowledgepark.edu",
-    appType: "STUDENT",
-    plan: "Medium",
-    status: "Active",
-    teachers: 32,
-    students: 980,
-    mrr: "₹15,000",
-    renewal: "Mar 30, 2026",
-  },
-  {
-    id: "GK-ORG-00135",
-    name: "Scholars Hub",
-    logo: null,
-    domain: "scholarshub.in",
-    appType: "MOCKBOOK",
-    plan: "Small",
-    status: "Trial",
-    teachers: 3,
-    students: 45,
-    mrr: "₹0",
-    renewal: "Mar 08, 2026",
-  },
-];
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
 
 // Status Badge Component
 function StatusBadge({ status }: { status: string }) {
@@ -177,7 +77,7 @@ function StatusBadge({ status }: { status: string }) {
     Active: "badge-active",
     Trial: "badge-trial",
     Suspended: "badge-suspended",
-    Pending: "badge-pending",
+    Expired: "badge-suspended",
   };
   return <span className={`badge ${styles[status] || ""}`}>{status}</span>;
 }
@@ -204,14 +104,65 @@ function PlanBadge({ plan }: { plan: string }) {
 }
 
 export default function OrganizationsPage() {
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
   const [appTypeFilter, setAppTypeFilter] = useState("all");
 
-  const allSelected = selectedOrgs.length === organizations.length;
-  const someSelected = selectedOrgs.length > 0 && !allSelected;
+  const fetchOrgs = async () => {
+    setLoading(true);
+    try {
+      const token = getToken();
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      if (searchQuery) params.append('search', searchQuery);
+      if (statusFilter !== 'all') params.append('status', statusFilter.toUpperCase());
+      if (planFilter !== 'all') params.append('plan', planFilter.toUpperCase());
+
+      const res = await fetch(`${API_URL}/super-admin/organizations?${params.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setOrganizations(json.data.orgs.map((o: any) => ({
+          id: o.orgId,
+          name: o.name,
+          domain: o.city || 'N/A',
+          appType: "BOTH", // Default for now
+          plan: o.plan.charAt(0) + o.plan.slice(1).toLowerCase(),
+          status: o.status.charAt(0) + o.status.slice(1).toLowerCase(),
+          teachers: o.staffCount,
+          students: o.studentCount,
+          mrr: "₹0", // Calculation done on backend dashboard
+          renewal: o.trialEndsAt ? new Date(o.trialEndsAt).toLocaleDateString() : 'N/A'
+        })));
+        setTotalCount(json.data.total);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrgs();
+  }, [page, limit, statusFilter, planFilter]);
+
+  // Handle search with debounce or manual trigger
+  const handleSearch = () => {
+    setPage(1);
+    fetchOrgs();
+  };
+
+  const allSelected = selectedOrgs.length === organizations.length && organizations.length > 0;
 
   const toggleSelectAll = () => {
     if (allSelected) {
@@ -234,20 +185,12 @@ export default function OrganizationsPage() {
     setStatusFilter("all");
     setPlanFilter("all");
     setAppTypeFilter("all");
+    setPage(1);
   };
 
   const hasActiveFilters = searchQuery || statusFilter !== "all" || planFilter !== "all" || appTypeFilter !== "all";
 
-  // Filter organizations
-  const filteredOrgs = organizations.filter((org) => {
-    const matchesSearch = org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      org.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      org.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || org.status === statusFilter;
-    const matchesPlan = planFilter === "all" || org.plan === planFilter;
-    const matchesAppType = appTypeFilter === "all" || org.appType === appTypeFilter;
-    return matchesSearch && matchesStatus && matchesPlan && matchesAppType;
-  });
+  const filteredOrgs = organizations; // Already filtered by API
 
   return (
     <div className="min-h-screen bg-neutral-bg">

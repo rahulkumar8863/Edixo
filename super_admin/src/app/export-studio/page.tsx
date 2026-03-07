@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ExportStudio } from "@/components/export-studio/ExportStudio";
 import { useExportStudio } from "@/components/export-studio/hooks/useExportStudio";
@@ -12,14 +12,14 @@ const mockExamResultsBindings = [
   { key: "student_roll", label: "Roll Number", value: "GK-STU-00892", category: "STUDENT" },
   { key: "student_class", label: "Class", value: "Class 12", category: "STUDENT" },
   { key: "student_photo", label: "Student Photo", value: "[image]", category: "STUDENT" },
-  
+
   // Exam Info
   { key: "exam_name", label: "Exam Name", value: "JEE Mock Test 3", category: "EXAM" },
   { key: "exam_date", label: "Exam Date", value: "March 2, 2026", category: "EXAM" },
   { key: "exam_duration", label: "Duration", value: "180 min", category: "EXAM" },
   { key: "total_marks", label: "Total Marks", value: "300", category: "EXAM" },
   { key: "passing_marks", label: "Passing Marks", value: "110", category: "EXAM" },
-  
+
   // Results
   { key: "score", label: "Score", value: "247", category: "RESULTS" },
   { key: "rank", label: "Rank", value: "4 / 48", category: "RESULTS" },
@@ -28,13 +28,13 @@ const mockExamResultsBindings = [
   { key: "physics_score", label: "Physics Score", value: "86", category: "SUBJECT SCORES" },
   { key: "chemistry_score", label: "Chemistry Score", value: "91", category: "SUBJECT SCORES" },
   { key: "maths_score", label: "Maths Score", value: "70", category: "SUBJECT SCORES" },
-  
+
   // Org
   { key: "org_name", label: "Organization", value: "Apex Academy", category: "ORG" },
   { key: "org_logo", label: "Org Logo", value: "[image]", category: "ORG" },
   { key: "org_tagline", label: "Tagline", value: "Excellence in Education", category: "ORG" },
   { key: "org_address", label: "Address", value: "Mumbai, Maharashtra", category: "ORG" },
-  
+
   // System
   { key: "today_date", label: "Today's Date", value: "March 2, 2026", category: "SYSTEM" },
   { key: "page_number", label: "Page Number", value: "Auto", category: "SYSTEM" },
@@ -51,15 +51,15 @@ export const mockTemplates = [
   { id: "t6", name: "Invoice Clean", category: "Invoices", thumbnail: "#E3F2FD" },
 ];
 
-export default function ExportStudioPage() {
+function ExportStudioContent() {
   const searchParams = useSearchParams();
   const sourceModule = searchParams.get("module") || "exam_results";
   const sourceId = searchParams.get("id") || "";
-  
-  const { 
-    setTitle, 
-    setSourceData, 
-    setDataBindings, 
+
+  const {
+    setTitle,
+    setSourceData,
+    setDataBindings,
     setOrgBranding,
     addElement,
     pages,
@@ -77,7 +77,7 @@ export default function ExportStudioPage() {
         logo: "/logo.png",
         color: "#F4511E",
       });
-      
+
       // Add sample elements to demonstrate the canvas
       if (pages[0]?.elements.length === 0) {
         // Header
@@ -290,4 +290,19 @@ export default function ExportStudioPage() {
   }, [sourceModule, sourceId]);
 
   return <ExportStudio />;
+}
+
+export default function ExportStudioPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-[#F4511E] border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-500 font-medium">Loading editor...</p>
+        </div>
+      </div>
+    }>
+      <ExportStudioContent />
+    </Suspense>
+  );
 }

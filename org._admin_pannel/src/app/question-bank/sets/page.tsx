@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -48,14 +48,14 @@ import { QuestionSetExportModal } from "@/components/set-system/QuestionSetExpor
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Mock data with Password
-const mockSets = [
-  { id: "1", name: "JEE Physics — Kinematics Full Set", code: "482931", password: "738291", subject: "Physics", questions: 30, marks: 120, visibility: "public", usedBy: 12, created: "Mar 1, 2026" },
-  { id: "2", name: "NEET Biology Complete", code: "591047", password: "492018", subject: "Biology", questions: 50, marks: 200, visibility: "private", usedBy: 0, created: "Feb 28, 2026" },
-  { id: "3", name: "JEE Mathematics - Calculus", code: "673829", password: "381927", subject: "Mathematics", questions: 25, marks: 100, visibility: "org_only", usedBy: 8, created: "Feb 25, 2026" },
-  { id: "4", name: "UPSC GS Paper 1 Practice", code: "784930", password: "573810", subject: "General Studies", questions: 100, marks: 200, visibility: "public", usedBy: 24, created: "Feb 20, 2026" },
-  { id: "5", name: "GATE CS Previous Year", code: "892018", password: "294738", subject: "Computer Science", questions: 65, marks: 100, visibility: "public", usedBy: 45, created: "Feb 15, 2026" },
-];
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
 
 // Visibility badge component
 function VisibilityBadge({ visibility }: { visibility: string }) {
@@ -69,17 +69,53 @@ function VisibilityBadge({ visibility }: { visibility: string }) {
 
 export default function QuestionSetsPage() {
   const router = useRouter();
+  const [sets, setSets] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [selectedSets, setSelectedSets] = useState<string[]>([]);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [shareSet, setShareSet] = useState<typeof mockSets[0] | null>(null);
+  const [shareSet, setShareSet] = useState<any | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportSet, setExportSet] = useState<typeof mockSets[0] | null>(null);
+  const [exportSet, setExportSet] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total: 0,
+    public: 0,
+    questions: 0,
+    used: 0
+  });
 
-  const filteredSets = mockSets.filter(set => {
-    const matchesSearch = set.name.toLowerCase().includes(search.toLowerCase()) || set.code.toLowerCase().includes(search.toLowerCase());
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = getToken();
+        setIsLoading(true);
+        const res = await fetch(`${API_URL}/qbank/sets`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const { data } = await res.json();
+          // Backend returns { success: true, data: { sets, total } }
+          setSets(data?.sets || []);
+          setStats({
+            total: data?.total || 0,
+            public: 0,
+            questions: 0,
+            used: 0
+          });
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const filteredSets = sets.filter(set => {
+    const matchesSearch = set.name.toLowerCase().includes(search.toLowerCase()) || (set.code || "").toLowerCase().includes(search.toLowerCase());
     const matchesSubject = subjectFilter === "all" || set.subject.toLowerCase() === subjectFilter;
     const matchesVisibility = visibilityFilter === "all" || set.visibility === visibilityFilter;
     return matchesSearch && matchesSubject && matchesVisibility;
@@ -125,13 +161,13 @@ export default function QuestionSetsPage() {
   };
 
   // Open share modal
-  const openShareModal = (set: typeof mockSets[0]) => {
+  const openShareModal = (set: any) => {
     setShareSet(set);
     setShowShareModal(true);
   };
 
   // Open export modal
-  const openExportModal = (set: typeof mockSets[0]) => {
+  const openExportModal = (set: any) => {
     setExportSet(set);
     setShowExportModal(true);
   };
@@ -167,25 +203,25 @@ export default function QuestionSetsPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-gray-900">156</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
                   <div className="text-sm text-gray-500">Total Sets</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-emerald-600">89</div>
+                  <div className="text-2xl font-bold text-emerald-600">{stats.public}</div>
                   <div className="text-sm text-gray-500">Public Sets</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-[#F4511E]">4,521</div>
+                  <div className="text-2xl font-bold text-[#F4511E]">{stats.questions}</div>
                   <div className="text-sm text-gray-500">Total Questions</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-blue-600">328</div>
+                  <div className="text-2xl font-bold text-blue-600">{stats.used}</div>
                   <div className="text-sm text-gray-500">Times Used</div>
                 </CardContent>
               </Card>
@@ -287,84 +323,97 @@ export default function QuestionSetsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSets.map((set) => (
-                        <tr
-                          key={set.id}
-                          className={cn(
-                            "border-b transition-colors cursor-pointer",
-                            selectedSets.includes(set.id) ? "bg-orange-50" : "hover:bg-gray-50"
-                          )}
-                          onClick={() => router.push(`/question-bank/sets/${set.id}`)}
-                        >
-                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={selectedSets.includes(set.id)}
-                              onCheckedChange={() => toggleSelect(set.id)}
-                              aria-label={`Select ${set.name}`}
-                            />
-                          </td>
-                          <td className="p-4">
-                            <div className="font-medium text-gray-900">{set.name}</div>
-                          </td>
-                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                            <div className="space-y-1">
-                              <code className="text-xs bg-gray-100 px-2 py-0.5 rounded font-mono block">{set.code}</code>
-                              <code className="text-xs text-gray-500 font-mono block">PWD: {set.password}</code>
-                            </div>
-                          </td>
-                          <td className="p-4 text-gray-600">{set.subject}</td>
-                          <td className="p-4 text-center">
-                            <Badge className="bg-blue-50 text-blue-700">{set.questions}</Badge>
-                          </td>
-                          <td className="p-4 text-center">
-                            <VisibilityBadge visibility={set.visibility} />
-                          </td>
-                          <td className="p-4 text-center text-gray-600">{set.usedBy}</td>
-                          <td className="p-4 text-gray-500 text-sm">{set.created}</td>
-                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex justify-center">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => router.push(`/question-bank/sets/${set.id}`)}>
-                                    <Eye className="w-4 h-4 mr-2" />View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => router.push(`/question-bank/sets/${set.id}/edit`)}>
-                                    <Edit className="w-4 h-4 mr-2" />Edit Set
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => openShareModal(set)}>
-                                    <Share2 className="w-4 h-4 mr-2" />Share
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Copy className="w-4 h-4 mr-2" />Duplicate
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => openExportModal(set)}>
-                                    <Download className="w-4 h-4 mr-2" />Export
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-red-600">
-                                    <Trash2 className="w-4 h-4 mr-2" />Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={9} className="text-center py-20 text-gray-400 italic">
+                            Loading sets...
                           </td>
                         </tr>
-                      ))}
+                      ) : filteredSets.length > 0 ? (
+                        filteredSets.map((set) => (
+                          <tr
+                            key={set.id}
+                            className={cn(
+                              "border-b transition-colors cursor-pointer",
+                              selectedSets.includes(set.id) ? "bg-orange-50" : "hover:bg-gray-50"
+                            )}
+                            onClick={() => router.push(`/question-bank/sets/${set.id}`)}
+                          >
+                            <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={selectedSets.includes(set.id)}
+                                onCheckedChange={() => toggleSelect(set.id)}
+                                aria-label={`Select ${set.name}`}
+                              />
+                            </td>
+                            <td className="p-4">
+                              <div className="font-medium text-gray-900">{set.name}</div>
+                            </td>
+                            <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                              <div className="space-y-1">
+                                <code className="text-xs bg-gray-100 px-2 py-0.5 rounded font-mono block">{set.code}</code>
+                                <code className="text-xs text-gray-500 font-mono block">PWD: {set.password}</code>
+                              </div>
+                            </td>
+                            <td className="p-4 text-gray-600">{set.subject}</td>
+                            <td className="p-4 text-center">
+                              <Badge className="bg-blue-50 text-blue-700">{set.questions}</Badge>
+                            </td>
+                            <td className="p-4 text-center">
+                              <VisibilityBadge visibility={set.visibility} />
+                            </td>
+                            <td className="p-4 text-center text-gray-600">{set.usedBy || 0}</td>
+                            <td className="p-4 text-gray-500 text-sm">{set.created}</td>
+                            <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex justify-center">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => router.push(`/question-bank/sets/${set.id}`)}>
+                                      <Eye className="w-4 h-4 mr-2" />View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => router.push(`/question-bank/sets/${set.id}/edit`)}>
+                                      <Edit className="w-4 h-4 mr-2" />Edit Set
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openShareModal(set)}>
+                                      <Share2 className="w-4 h-4 mr-2" />Share
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <Copy className="w-4 h-4 mr-2" />Duplicate
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openExportModal(set)}>
+                                      <Download className="w-4 h-4 mr-2" />Export
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-red-600">
+                                      <Trash2 className="w-4 h-4 mr-2" />Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={9} className="text-center py-20 text-gray-400 italic">
+                            No sets found.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Pagination */}
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                Showing {filteredSets.length} of {mockSets.length} sets
+                Showing {filteredSets.length} of {sets.length} sets
               </div>
             </div>
           </div>

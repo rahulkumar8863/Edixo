@@ -25,6 +25,7 @@ import feesRoutes from './modules/fees/fees.routes';
 import uploadRoutes from './modules/upload/upload.routes';
 import notificationsRoutes from './modules/notifications/notifications.routes';
 import mockbookRoutes from './modules/mockbook/mockbook.routes';
+import blogRoutes from './modules/blog/blog.routes';
 
 // Error handler
 import { errorHandler } from './middleware/errorHandler';
@@ -98,6 +99,7 @@ app.use('/api/fees', feesRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/mockbook', mockbookRoutes);
+app.use('/api/blog', blogRoutes);
 
 // ─── Error Handling ──────────────────────────────────────────
 app.use(notFound);

@@ -11,9 +11,13 @@ router.use(authenticate, requireSuperAdmin);
 // ─── GET /api/super-admin/dashboard ─────────────────────────
 router.get('/dashboard', async (_req, res, next) => {
     try {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
         const [
             totalOrgs, activeOrgs, trialOrgs, suspendedOrgs,
             totalStudents, totalStaff,
+            testAttemptCount, globalQuestionCount,
+            activeUserCount
         ] = await Promise.all([
             prisma.organization.count({ where: { deletedAt: null } }),
             prisma.organization.count({ where: { status: 'ACTIVE', deletedAt: null } }),
@@ -21,7 +25,33 @@ router.get('/dashboard', async (_req, res, next) => {
             prisma.organization.count({ where: { status: 'SUSPENDED', deletedAt: null } }),
             prisma.student.count({ where: { isActive: true } }),
             prisma.orgStaff.count({ where: { isActive: true } }),
+            prisma.testAttempt.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+            prisma.question.count({ where: { orgId: null } }), // Global questions
+            prisma.user.count({ where: { lastLoginAt: { gte: thirtyDaysAgo } } }),
         ]);
+
+        // Monthly Recurring Revenue (MRR) calculation based on plans
+        // SMALL: 5000, MEDIUM: 15000, LARGE: 40000, ENTERPRISE: 100000 (Mock values for calculation)
+        const planRates: Record<string, number> = {
+            SMALL: 5000,
+            MEDIUM: 15000,
+            LARGE: 40000,
+            ENTERPRISE: 100000
+        };
+
+        const activeOrgsList = await prisma.organization.findMany({
+            where: { status: 'ACTIVE', deletedAt: null },
+            select: { plan: true }
+        });
+
+        const mrr = activeOrgsList.reduce((acc, org) => acc + (planRates[org.plan] || 0), 0);
+
+        // Plan Distribution
+        const planDistribution = await prisma.organization.groupBy({
+            by: ['plan'],
+            where: { deletedAt: null },
+            _count: { _all: true }
+        });
 
         // Trial expiring soon (next 3 days)
         const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
@@ -38,7 +68,22 @@ router.get('/dashboard', async (_req, res, next) => {
         res.json({
             success: true,
             data: {
-                stats: { totalOrgs, activeOrgs, trialOrgs, suspendedOrgs, totalStudents, totalStaff },
+                stats: {
+                    totalOrgs,
+                    activeOrgs,
+                    trialOrgs,
+                    suspendedOrgs,
+                    totalStudents,
+                    totalStaff,
+                    mrr,
+                    testAttemptCount,
+                    globalQuestionCount,
+                    activeUserCount
+                },
+                planDistribution: planDistribution.map(p => ({
+                    name: p.plan,
+                    value: p._count._all
+                })),
                 alerts: { trialExpiringSoon },
             },
         });
@@ -79,6 +124,87 @@ router.get('/organizations', async (req, res, next) => {
             success: true,
             data: { orgs, total, page: Number(page), pages: Math.ceil(total / Number(limit)) },
         });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /api/super-admin/organizations/:orgId ──────────────
+router.get('/organizations/:orgId', async (req, res, next) => {
+    try {
+        const org = await prisma.organization.findFirst({
+            where: { orgId: req.params.orgId, deletedAt: null },
+            include: {
+                featureFlags: true,
+                personalizationSettings: true,
+            },
+        });
+        if (!org) throw new AppError('Organization not found', 404);
+
+        const [studentCount, staffCount, testAttemptCount] = await Promise.all([
+            prisma.student.count({ where: { orgId: org.id, isActive: true } }),
+            prisma.orgStaff.count({ where: { orgId: org.id, isActive: true } }),
+            prisma.testAttempt.count({ where: { student: { orgId: org.id } } }),
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                ...org,
+                _count: {
+                    students: studentCount,
+                    staff: staffCount,
+                    testAttempts: testAttemptCount,
+                }
+            },
+        });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /api/super-admin/organizations/:orgId/staff ────────
+router.get('/organizations/:orgId/staff', async (req, res, next) => {
+    try {
+        const org = await prisma.organization.findFirst({ where: { orgId: req.params.orgId } });
+        if (!org) throw new AppError('Organization not found', 404);
+
+        const staff = await prisma.orgStaff.findMany({
+            where: { orgId: org.id },
+            include: { user: { select: { lastLoginAt: true } } },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json({ success: true, data: staff });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /api/super-admin/organizations/:orgId/students ─────
+router.get('/organizations/:orgId/students', async (req, res, next) => {
+    try {
+        const org = await prisma.organization.findFirst({ where: { orgId: req.params.orgId } });
+        if (!org) throw new AppError('Organization not found', 404);
+
+        const students = await prisma.student.findMany({
+            where: { orgId: org.id },
+            include: { user: { select: { lastLoginAt: true } } },
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+
+        res.json({ success: true, data: students });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /api/super-admin/organizations/:orgId/audit ────────
+router.get('/organizations/:orgId/audit', async (req, res, next) => {
+    try {
+        const org = await prisma.organization.findFirst({ where: { orgId: req.params.orgId } });
+        if (!org) throw new AppError('Organization not found', 404);
+
+        const audit = await prisma.orgAuditLog.findMany({
+            where: { orgId: org.id },
+            orderBy: { createdAt: 'desc' },
+            take: 20
+        });
+
+        res.json({ success: true, data: audit });
     } catch (err) { next(err); }
 });
 
@@ -254,6 +380,45 @@ router.patch('/organizations/:orgId/feature-flags', async (req, res, next) => {
         });
 
         res.json({ success: true, message: `Feature flag "${key}" set to ${value}` });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /api/super-admin/users ─────────────────────────────
+router.get('/users', async (req, res, next) => {
+    try {
+        const { page = 1, limit = 20, search, role, status } = req.query;
+        const skip = (Number(page) - 1) * Number(limit);
+
+        const where: any = {};
+        if (search) {
+            where.OR = [
+                { email: { contains: search as string, mode: 'insensitive' } },
+                { mobile: { contains: search as string, mode: 'insensitive' } },
+                { student: { name: { contains: search as string, mode: 'insensitive' } } },
+                { orgStaff: { name: { contains: search as string, mode: 'insensitive' } } },
+            ];
+        }
+        if (role) where.role = role;
+        if (status) where.isActive = status === 'ACTIVE';
+
+        const [users, total] = await Promise.all([
+            prisma.user.findMany({
+                where,
+                skip,
+                take: Number(limit),
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    student: { select: { name: true, studentId: true, org: { select: { name: true, orgId: true } } } },
+                    orgStaff: { select: { name: true, staffId: true, org: { select: { name: true, orgId: true } } } },
+                },
+            }),
+            prisma.user.count({ where }),
+        ]);
+
+        res.json({
+            success: true,
+            data: { users, total, page: Number(page), pages: Math.ceil(total / Number(limit)) },
+        });
     } catch (err) { next(err); }
 });
 

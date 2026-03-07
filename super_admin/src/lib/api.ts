@@ -1,0 +1,40 @@
+/**
+ * Shared API utility for super_admin frontend.
+ * Attach token from cookies to requests going to eduhub-backend.
+ */
+
+const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+    if (typeof document === 'undefined') return '';
+    const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+    return match ? match[1] : '';
+}
+
+async function request<T = any>(method: string, path: string, body?: any): Promise<T> {
+    const token = getToken();
+    const res = await fetch(`${BACKEND_URL}${path}`, {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || `API Error: ${res.status}`);
+    }
+
+    return res.json();
+}
+
+export const api = {
+    get: <T = any>(path: string) => request<T>('GET', path),
+    post: <T = any>(path: string, body?: any) => request<T>('POST', path, body),
+    patch: <T = any>(path: string, body?: any) => request<T>('PATCH', path, body),
+    delete: <T = any>(path: string) => request<T>('DELETE', path),
+};
+
+export { BACKEND_URL };

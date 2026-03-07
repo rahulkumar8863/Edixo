@@ -153,7 +153,7 @@ const geographyData = [
   { state: "Others", orgs: 5, color: "#F3F4F6" },
 ];
 
-// Whiteboard Sessions Heatmap Data
+// Practice Sessions Heatmap Data
 const sessionsHeatmap = [
   { hour: "6AM", mon: 2, tue: 1, wed: 2, thu: 1, fri: 2, sat: 5, sun: 4 },
   { hour: "9AM", mon: 8, tue: 9, wed: 10, thu: 8, fri: 7, sat: 12, sun: 10 },
@@ -179,7 +179,7 @@ export default function AnalyticsPage() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Platform Analytics</h1>
                 <p className="text-gray-500 text-sm mt-1">
-                  Comprehensive insights across all organizations
+                  Comprehensive insights across all your students and batches
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -260,7 +260,7 @@ export default function AnalyticsPage() {
                       <Building2 className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 uppercase">Active Orgs</div>
+                      <div className="text-xs text-gray-500 uppercase">Active Batches</div>
                       <div className="text-xl font-bold text-gray-900">48</div>
                       <div className="text-xs text-green-600">+6 this month</div>
                     </div>
@@ -335,7 +335,7 @@ export default function AnalyticsPage() {
               {/* Org Onboarding */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold">Org Onboarding</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Student Admissions</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[220px]">
@@ -551,7 +551,7 @@ export default function AnalyticsPage() {
               {/* Geography Distribution */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold">Organizations by State</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Students by State</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -579,7 +579,7 @@ export default function AnalyticsPage() {
               {/* Whiteboard Sessions Heatmap */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold">Whiteboard Sessions (Hour × Day)</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Practice Sessions (Hour × Day)</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
@@ -628,7 +628,7 @@ export default function AnalyticsPage() {
             {/* Retention Cohort */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold">Org Retention Cohort</CardTitle>
+                <CardTitle className="text-lg font-semibold">Student Retention Cohort</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -661,8 +661,8 @@ export default function AnalyticsPage() {
                                 <div
                                   className="w-full h-8 rounded flex items-center justify-center text-sm font-medium"
                                   style={{
-                                    backgroundColor: idx === 0 
-                                      ? '#F4511E' 
+                                    backgroundColor: idx === 0
+                                      ? '#F4511E'
                                       : `rgba(244, 81, 30, ${intensity / 100 * 0.8})`,
                                     color: idx === 0 || intensity > 50 ? 'white' : '#374151',
                                   }}
@@ -690,7 +690,7 @@ export default function AnalyticsPage() {
                   {[
                     { name: "Monthly Revenue", icon: TrendingUp, format: "PDF" },
                     { name: "All Users", icon: Users, format: "CSV" },
-                    { name: "Organizations Summary", icon: Building2, format: "CSV" },
+                    { name: "Batch Performance Summary", icon: Building2, format: "CSV" },
                     { name: "Question Usage + Points", icon: Coins, format: "CSV" },
                     { name: "MockBook Results", icon: BookOpen, format: "CSV" },
                     { name: "Invoice History", icon: Building2, format: "CSV" },

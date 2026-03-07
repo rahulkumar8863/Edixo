@@ -1,6 +1,6 @@
 class AppConstants {
   // API
-  static const String baseUrl = 'https://api.eduhub.com';
+  static const String baseUrl = 'http://localhost:4000/api';
   static const String apiVersion = 'v1';
   
   // Storage Keys

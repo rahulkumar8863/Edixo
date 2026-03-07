@@ -483,17 +483,14 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ onLaunchPres
     fetchTopicSuggestions();
   }, [genParams.subject]);
 
-  const [supabaseOffline, setSupabaseOffline] = useState(false);
 
   const refreshLibrary = async () => {
     setIsDataLoading(true);
-    setSupabaseOffline(false);
     try {
       const data = await storageService.getQuestions();
       setLibrary(data);
     } catch (err) {
       console.warn('refreshLibrary failed:', err);
-      setSupabaseOffline(true);
     } finally {
       setIsDataLoading(false);
     }
@@ -502,7 +499,7 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ onLaunchPres
   const refreshSets = async () => {
     try {
       const data = await storageService.getSets();
-      setSets(data);
+      setSets(data || []);
     } catch {
       // silent — sets will just be empty
     }
@@ -1488,34 +1485,6 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ onLaunchPres
                     </div>
                     <h4 className="text-lg font-bold text-slate-900">No Questions Found</h4>
                     <p className="text-sm text-[#6B7280] mt-1 max-w-sm">Create new questions or import them to get started.</p>
-                  </div>
-                )
-              }
-
-              {
-                supabaseOffline && !isDataLoading && (
-                  <div className="py-24 flex flex-col items-center justify-center text-center">
-                    <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mb-6 border border-red-100">
-                      <AlertCircle size={32} className="text-red-400" />
-                    </div>
-                    <h4 className="text-lg font-bold text-slate-900">Supabase Server Offline</h4>
-                    <p className="text-sm text-[#6B7280] mt-1 max-w-sm">
-                      Could not connect to the database. Supabase may be experiencing an outage.
-                    </p>
-                    <button
-                      onClick={() => refreshLibrary()}
-                      className="mt-5 px-5 py-2 bg-primary text-white rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-primary/90 transition-all"
-                    >
-                      <RefreshCw size={15} /> Retry
-                    </button>
-                    <a
-                      href="https://status.supabase.com"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 text-xs text-[#6B7280] underline"
-                    >
-                      Check Supabase Status →
-                    </a>
                   </div>
                 )
               }

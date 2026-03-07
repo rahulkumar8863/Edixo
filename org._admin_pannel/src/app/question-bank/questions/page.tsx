@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+// @ts-expect-error - papaparse types might not be picked up by IDE
+import Papa from "papaparse";
 import {
   Search,
   Plus,
@@ -25,6 +27,7 @@ import {
   CheckCircle,
   Layers,
   Check,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,116 +69,14 @@ import { toast } from "sonner";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
 
-// Mock questions data with bilingual content
-const questions = [
-  {
-    id: "Q-00001",
-    question_hin: "<p>न्यूटन का कौन सा नियम F = ma बताता है?</p>",
-    question_eng: "<p>Which law states F = ma?</p>",
-    type: "mcq",
-    subject: "Physics",
-    chapter: "Laws of Motion",
-    difficulty: "easy",
-    visibility: "public",
-    pointCost: 5,
-    usageCount: 124,
-    answer: "B",
-    option1_hin: "<p>प्रथम नियम</p>",
-    option1_eng: "<p>First Law</p>",
-    option2_hin: "<p>द्वितीय नियम</p>",
-    option2_eng: "<p>Second Law</p>",
-    option3_hin: "<p>तृतीय नियम</p>",
-    option3_eng: "<p>Third Law</p>",
-    option4_hin: "<p>गुरुत्वाकर्षण नियम</p>",
-    option4_eng: "<p>Law of Gravitation</p>",
-    solution_hin: "<p>न्यूटन का द्वितीय नियम F = ma है, जो बल द्रव्यमान और त्वरण के बीच संबंध बताता है।</p>",
-    solution_eng: "<p>Newton's second law states F = ma, which relates force, mass, and acceleration.</p>",
-  },
-  {
-    id: "Q-00002",
-    question_hin: "<p>ग्लूकोज का मॉलिक्यूलर फॉर्मूला क्या है?</p><p>\(C_6H_{12}O_6\)</p>",
-    question_eng: "<p>What is the molecular formula of Glucose?</p><p>\(C_6H_{12}O_6\)</p>",
-    type: "mcq",
-    subject: "Chemistry",
-    chapter: "Carbohydrates",
-    difficulty: "medium",
-    visibility: "public",
-    pointCost: 8,
-    usageCount: 89,
-    answer: "A",
-    option1_hin: "<p>\(C_6H_{12}O_6\)</p>",
-    option1_eng: "<p>\(C_6H_{12}O_6\)</p>",
-    option2_hin: "<p>\(C_5H_{10}O_5\)</p>",
-    option2_eng: "<p>\(C_5H_{10}O_5\)</p>",
-    option3_hin: "<p>\(C_{12}H_{22}O_{11}\)</p>",
-    option3_eng: "<p>\(C_{12}H_{22}O_{11}\)</p>",
-    option4_hin: "<p>\(C_6H_{10}O_5\)</p>",
-    option4_eng: "<p>\(C_6H_{10}O_5\)</p>",
-    solution_hin: "<p>ग्लूकोज एक हेक्सोज शर्करा है जिसका मॉलिक्यूलर फॉर्मूला \(C_6H_{12}O_6\) है।</p>",
-    solution_eng: "<p>Glucose is a hexose sugar with molecular formula \(C_6H_{12}O_6\).</p>",
-  },
-  {
-    id: "Q-00003",
-    question_hin: "<p>H<sub>2</sub>SO<sub>4</sub> को क्या कहते हैं?</p>",
-    question_eng: "<p>What is H<sub>2</sub>SO<sub>4</sub> called?</p>",
-    type: "mcq",
-    subject: "Chemistry",
-    chapter: "Acids and Bases",
-    difficulty: "easy",
-    visibility: "public",
-    pointCost: 5,
-    usageCount: 156,
-    answer: "C",
-    option1_hin: "<p>हाइड्रोक्लोरिक एसिड</p>",
-    option1_eng: "<p>Hydrochloric Acid</p>",
-    option2_hin: "<p>नाइट्रिक एसिड</p>",
-    option2_eng: "<p>Nitric Acid</p>",
-    option3_hin: "<p>सल्फ्यूरिक एसिड</p>",
-    option3_eng: "<p>Sulfuric Acid</p>",
-    option4_hin: "<p>एसीटिक एसिड</p>",
-    option4_eng: "<p>Acetic Acid</p>",
-    solution_hin: "<p>H<sub>2</sub>SO<sub>4</sub> सल्फ्यूरिक एसिड है, जिसे ऑयल ऑफ विट्रियोल भी कहा जाता है।</p>",
-    solution_eng: "<p>H<sub>2</sub>SO<sub>4</sub> is Sulfuric Acid, also known as Oil of Vitriol.</p>",
-  },
-  {
-    id: "Q-00004",
-    question_hin: "<p>यदि एक वस्तु 45m की ऊंचाई से गिराई जाती है, तो जमीन तक पहुंचने में कितना समय लगेगा? (g=10 m/s²)</p>",
-    question_eng: "<p>If a body is dropped from a height of 45m, find the time taken to reach the ground (g=10 m/s²)</p>",
-    type: "integer",
-    subject: "Physics",
-    chapter: "Kinematics",
-    difficulty: "medium",
-    visibility: "public",
-    pointCost: 8,
-    usageCount: 98,
-    answer: "3",
-    solution_hin: "<p>s = ut + ½gt²</p><p>45 = 0 + ½ × 10 × t²</p><p>t² = 9, t = 3s</p>",
-    solution_eng: "<p>s = ut + ½gt²</p><p>45 = 0 + ½ × 10 × t²</p><p>t² = 9, t = 3s</p>",
-  },
-  {
-    id: "Q-00005",
-    question_hin: "<p>सेल का पावरहाउस किस ऑर्गेनेल को कहा जाता है?</p>",
-    question_eng: "<p>Which organelle is known as the powerhouse of the cell?</p>",
-    type: "mcq",
-    subject: "Biology",
-    chapter: "Cell Structure",
-    difficulty: "easy",
-    visibility: "public",
-    pointCost: 5,
-    usageCount: 203,
-    answer: "B",
-    option1_hin: "<p>राइबोसोम</p>",
-    option1_eng: "<p>Ribosome</p>",
-    option2_hin: "<p>माइटोकॉन्ड्रिया</p>",
-    option2_eng: "<p>Mitochondria</p>",
-    option3_hin: "<p>गॉल्जी बॉडी</p>",
-    option3_eng: "<p>Golgi Body</p>",
-    option4_hin: "<p>एंडोप्लाज्मिक रेटिकुलम</p>",
-    option4_eng: "<p>Endoplasmic Reticulum</p>",
-    solution_hin: "<p>माइटोकॉन्ड्रिया को सेल का पावरहाउस कहा जाता है क्योंकि यह ATP का उत्पादन करता है।</p>",
-    solution_eng: "<p>Mitochondria is called the powerhouse of the cell as it produces ATP.</p>",
-  },
-];
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
 
 // Type Badge Component
 function TypeBadge({ type }: { type: string }) {
@@ -226,34 +127,80 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').replace(/\\[()\\[\]]/g, '').slice(0, 80) + '...';
 }
 
-// Mock question sets for Add to Set dialog
-const questionSets = [
-  { id: "1", name: "JEE Physics — Kinematics Full Set", code: "SET-PHY-KIN-001", questions: 30 },
-  { id: "2", name: "NEET Biology Complete", code: "SET-BIO-NEET-001", questions: 50 },
-  { id: "3", name: "JEE Mathematics - Calculus", code: "SET-MATH-CAL-001", questions: 25 },
-  { id: "4", name: "UPSC GS Paper 1 Practice", code: "SET-UPSC-GS-001", questions: 100 },
-  { id: "5", name: "GATE CS Previous Year", code: "SET-GATE-CS-001", questions: 65 },
-];
+// Redacted static questionSets
+
 
 export default function QuestionsListPage() {
   const router = useRouter();
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [questionSets, setQuestionSets] = useState<any[]>([]);
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [visibilityFilter, setVisibilityFilter] = useState("all");
-  const [previewQuestion, setPreviewQuestion] = useState<typeof questions[0] | null>(null);
+  const [scopeFilter, setScopeFilter] = useState("all");
+  const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
+  const [previewQuestion, setPreviewQuestion] = useState<any | null>(null);
+  const [reportQuestion, setReportQuestion] = useState<any | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDesc, setReportDesc] = useState("");
   const [previewLang, setPreviewLang] = useState<"hin" | "eng">("eng");
   const [showAddToSetDialog, setShowAddToSetDialog] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState<string>("");
   const [questionSetSearchQuery, setQuestionSetSearchQuery] = useState("");
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<Record<string, unknown>[] | null>(null);
+  const [importRows, setImportRows] = useState<any[]>([]);
+  const [importPreview, setImportPreview] = useState<any[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [importLoading, setImportLoading] = useState(false);
 
-  const allSelected = selectedQuestions.length === questions.length;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = getToken();
+        setIsLoading(true);
+        const url = new URL(`${API_URL}/qbank/questions`);
+        if (scopeFilter !== "all") url.searchParams.append("scope", scopeFilter);
+        if (searchQuery) url.searchParams.append("search", searchQuery);
+        if (difficultyFilter !== "all") url.searchParams.append("difficulty", difficultyFilter);
+        if (typeFilter !== "all") url.searchParams.append("type", typeFilter);
+
+        const [qRes, sRes, meRes] = await Promise.all([
+          fetch(url.toString(), { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+          fetch(`${API_URL}/qbank/sets`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+        ]);
+
+        if (qRes.ok) {
+          const qData = await qRes.json();
+          setQuestions(qData.data?.questions || []);
+        }
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          setQuestionSets(sData.data?.sets || []);
+        }
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          setCurrentOrgId(meData.data?.orgDbId || null);
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+
+    // Check for import query param
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('import') === 'true') {
+      setShowImportDialog(true);
+    }
+  }, [searchQuery, subjectFilter, difficultyFilter, typeFilter, scopeFilter]);
+
+  const allSelected = questions.length > 0 && selectedQuestions.length === questions.length;
   const someSelected = selectedQuestions.length > 0 && !allSelected;
 
   const toggleSelectAll = () => {
@@ -277,29 +224,19 @@ export default function QuestionsListPage() {
     setSubjectFilter("all");
     setDifficultyFilter("all");
     setTypeFilter("all");
-    setVisibilityFilter("all");
+    setScopeFilter("all");
   };
 
-  const hasActiveFilters = searchQuery || subjectFilter !== "all" || difficultyFilter !== "all" || typeFilter !== "all" || visibilityFilter !== "all";
+  const hasActiveFilters = searchQuery || subjectFilter !== "all" || difficultyFilter !== "all" || typeFilter !== "all" || scopeFilter !== "all";
 
-  // Filter questions
-  const filteredQuestions = questions.filter((q) => {
-    const matchesSearch = q.question_hin.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.question_eng.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.chapter.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = subjectFilter === "all" || q.subject === subjectFilter;
-    const matchesDifficulty = difficultyFilter === "all" || q.difficulty === difficultyFilter;
-    const matchesType = typeFilter === "all" || q.type === typeFilter;
-    const matchesVisibility = visibilityFilter === "all" || q.visibility === visibilityFilter;
-    return matchesSearch && matchesSubject && matchesDifficulty && matchesType && matchesVisibility;
-  });
+  // Filter questions (client-side search & custom filters)
+  const filteredQuestions = questions; // Fetching is already filtered by backend
 
-  // Get unique subjects for filter
-  const subjects = [...new Set(questions.map(q => q.subject))];
+  // Map backend questions to subjects list
+  const subjects = [...new Set(questions.map(q => q.folder?.name || "Uncategorized"))];
 
   // Filter question sets
-  const filteredSets = questionSets.filter(set => 
+  const filteredSets = questionSets.filter(set =>
     set.name.toLowerCase().includes(questionSetSearchQuery.toLowerCase()) ||
     set.code.toLowerCase().includes(questionSetSearchQuery.toLowerCase())
   );
@@ -330,49 +267,66 @@ export default function QuestionsListPage() {
 
     setImportFile(file);
 
-    // Parse CSV for preview
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const lines = text.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim());
-      
-      // Parse first 5 rows for preview
-      const previewData = lines.slice(1, 6).map(line => {
-        const values = line.split(',');
-        const row: Record<string, unknown> = {};
-        headers.forEach((header, i) => {
-          row[header] = values[i]?.trim() || '';
-        });
-        return row;
-      }).filter(row => Object.values(row).some(v => v));
-
-      setImportPreview(previewData);
-    };
-    reader.readAsText(file);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        setImportRows(results.data);
+        setImportPreview(results.data.slice(0, 5));
+      },
+      error: (error) => {
+        toast.error(`Error parsing CSV: ${error.message}`);
+      }
+    });
   };
 
   // Handle CSV import
   const handleImport = async () => {
-    if (!importFile) return;
+    if (!importFile || importRows.length === 0) return;
 
     setImportLoading(true);
-    
-    // Simulate import
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast.success(`Successfully imported ${importPreview?.length || 0} questions`);
-    setImportLoading(false);
-    setShowImportDialog(false);
-    setImportFile(null);
-    setImportPreview(null);
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/qbank/bulk-upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          fileName: importFile.name,
+          rows: importRows
+        })
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        toast.success(`Successfully imported ${resData.data.savedCount} questions`);
+        if (resData.data.failedCount > 0) {
+          toast.warning(`${resData.data.failedCount} rows failed to import`);
+        }
+        setShowImportDialog(false);
+        setImportFile(null);
+        setImportPreview(null);
+        setImportRows([]);
+        // Refresh questions
+        window.location.reload();
+      } else {
+        toast.error(resData.message || "Failed to import questions");
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      toast.error("An error occurred during import");
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   // Download CSV template
   const downloadTemplate = () => {
     const template = `question_eng,question_hin,type,subject,chapter,difficulty,option1_eng,option1_hin,option2_eng,option2_hin,option3_eng,option3_hin,option4_eng,option4_hin,answer,solution_eng,solution_hin
 "Which law states F = ma?","न्यूटन का कौन सा नियम F = ma बताता है?",mcq,Physics,Laws of Motion,easy,"First Law","प्रथम नियम","Second Law","द्वितीय नियम","Third Law","तृतीय नियम","Law of Gravitation","गुरुत्वाकर्षण नियम",B,"Newton's second law states F = ma","न्यूटन का द्वितीय नियम F = ma है"`;
-    
+
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -381,6 +335,33 @@ export default function QuestionsListPage() {
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Template downloaded');
+  };
+
+  const handleReport = async () => {
+    if (!reportReason) {
+      toast.error("Please select a reason");
+      return;
+    }
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_URL}/qbank/questions/${reportQuestion.id}/report`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: reportReason, description: reportDesc }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Report submitted successfully");
+        setReportQuestion(null);
+        setReportReason("");
+        setReportDesc("");
+      }
+    } catch (err) {
+      toast.error("Failed to submit report");
+    }
   };
 
   return (
@@ -465,14 +446,15 @@ export default function QuestionsListPage() {
                       <SelectItem value="true_false">True/False</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-                    <SelectTrigger className="w-[120px] input-field">
-                      <SelectValue placeholder="Visibility" />
+                  <Select value={scopeFilter} onValueChange={setScopeFilter}>
+                    <SelectTrigger className="w-[150px] bg-white">
+                      <SelectValue placeholder="Question Source" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="public">Public</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
+                      <SelectItem value="all">All Sources</SelectItem>
+                      <SelectItem value="mine">My Questions</SelectItem>
+                      <SelectItem value="global">Global Bank</SelectItem>
+                      <SelectItem value="public">Other Orgs</SelectItem>
                     </SelectContent>
                   </Select>
                   {hasActiveFilters && (
@@ -544,80 +526,101 @@ export default function QuestionsListPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredQuestions.map((question) => (
-                      <TableRow
-                        key={question.id}
-                        className={`hover:bg-brand-primary-tint cursor-pointer ${selectedQuestions.includes(question.id) ? 'bg-brand-primary-tint' : ''}`}
-                        onClick={() => { setPreviewQuestion(question); setPreviewLang("eng"); }}
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedQuestions.includes(question.id)}
-                            onCheckedChange={() => toggleSelect(question.id)}
-                            aria-label={`Select question ${question.id}`}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-purple-50 text-purple-600 text-[10px]">
-                              <Languages className="w-3 h-3 mr-1" /> अ/A
-                            </Badge>
-                            <span className="text-sm text-gray-700 line-clamp-2 max-w-[280px]"
-                              dangerouslySetInnerHTML={{ __html: stripHtml(question.question_eng) }}
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <TypeBadge type={question.type} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <span className="text-gray-900">{question.subject}</span>
-                            <span className="text-gray-400 mx-1">›</span>
-                            <span className="text-gray-500">{question.chapter}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <DifficultyBadge difficulty={question.difficulty} />
-                        </TableCell>
-                        <TableCell>
-                          <VisibilityToggle visibility={question.visibility} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center gap-1 text-sm font-semibold text-orange-600">
-                            <Coins className="w-3 h-3" />
-                            {question.pointCost}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center text-sm text-gray-600">
-                          {question.usageCount}
-                        </TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => { setPreviewQuestion(question); setPreviewLang("eng"); }}>
-                                <Eye className="w-4 h-4 mr-2" /> Preview
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/question-bank/questions/${question.id}/edit`)}>
-                                <Pencil className="w-4 h-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Copy className="w-4 h-4 mr-2" /> Duplicate
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="w-4 h-4 mr-2" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-20 text-gray-400 italic">
+                          Loading questions...
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (filteredQuestions.length > 0) ? (
+                      filteredQuestions.map((question) => (
+                        <TableRow
+                          key={question.id}
+                          className={`hover:bg-brand-primary-tint cursor-pointer ${selectedQuestions.includes(question.id) ? 'bg-brand-primary-tint' : ''}`}
+                          onClick={() => { setPreviewQuestion(question); setPreviewLang("eng"); }}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedQuestions.includes(question.id)}
+                              onCheckedChange={() => toggleSelect(question.id)}
+                              aria-label={`Select question ${question.id}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-purple-50 text-purple-600 text-[10px]">
+                                <Languages className="w-3 h-3 mr-1" /> अ/A
+                              </Badge>
+                              <span className="text-sm text-gray-700 line-clamp-2 max-w-[280px]"
+                                dangerouslySetInnerHTML={{ __html: stripHtml(question.textEn || question.textHi || "") }}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <TypeBadge type={question.type.toLowerCase()} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <span className="text-gray-900">{question.folder?.name || "Uncategorized"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <DifficultyBadge difficulty={question.difficulty.toLowerCase()} />
+                          </TableCell>
+                          <TableCell>
+                            <VisibilityToggle visibility={question.isGlobal ? "global" : (question.isApproved ? "public" : "private")} />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="inline-flex items-center gap-1 text-sm font-semibold text-orange-600">
+                              <Coins className="w-3 h-3" />
+                              {question.pointCost}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center text-sm text-gray-600">
+                            {question.usageCount}
+                          </TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setPreviewQuestion(question); setPreviewLang("eng"); }}>
+                                  <Eye className="w-4 h-4 mr-2" /> Preview
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem onClick={() => { setReportQuestion(question); }}>
+                                  <AlertCircle className="w-4 h-4 mr-2 text-amber-600" /> Report Issue
+                                </DropdownMenuItem>
+
+                                {(question.orgId === currentOrgId && !question.isGlobal) && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => router.push(`/question-bank/questions/${question.id}/edit`)}>
+                                      <Pencil className="w-4 h-4 mr-2" /> Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <Copy className="w-4 h-4 mr-2" /> Duplicate
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-red-600">
+                                      <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-20 text-gray-400 italic">
+                          No questions found. Click "Create Question" to add one.
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -675,39 +678,39 @@ export default function QuestionsListPage() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="flex flex-wrap gap-2">
-              <TypeBadge type={previewQuestion?.type || ""} />
-              <DifficultyBadge difficulty={previewQuestion?.difficulty || ""} />
-              <VisibilityToggle visibility={previewQuestion?.visibility || "private"} />
+              <TypeBadge type={previewQuestion?.type?.toLowerCase() || ""} />
+              <DifficultyBadge difficulty={previewQuestion?.difficulty?.toLowerCase() || ""} />
+              <VisibilityToggle visibility={previewQuestion?.isGlobal ? "global" : (previewQuestion?.isApproved ? "public" : "private")} />
             </div>
             <div className="text-sm text-gray-500">
-              {previewQuestion?.subject} › {previewQuestion?.chapter}
+              {previewQuestion?.folder?.name || "Uncategorized"}
             </div>
-            
+
             {/* Question Text */}
             <div className="bg-gray-50 rounded-lg p-4">
-              <div 
+              <div
                 className="text-gray-900 font-medium prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: previewLang === "hin" ? previewQuestion?.question_hin : previewQuestion?.question_eng }}
+                dangerouslySetInnerHTML={{ __html: previewLang === "hin" ? (previewQuestion?.textHi || "") : (previewQuestion?.textEn || "") }}
               />
             </div>
 
             {/* Options */}
-            {previewQuestion?.type === "mcq" && (
+            {previewQuestion?.type?.toLowerCase() === "mcq_single" && previewQuestion.options && (
               <div className="space-y-2">
-                {["A", "B", "C", "D"].map((letter, i) => {
-                  const optKey = `option${i + 1}` as keyof typeof previewQuestion;
-                  const optText = previewQuestion ? (previewLang === "hin" ? previewQuestion[`${optKey}_hin` as keyof typeof previewQuestion] : previewQuestion[`${optKey}_eng` as keyof typeof previewQuestion]) : "";
-                  const isCorrect = previewQuestion?.answer === letter;
+                {previewQuestion.options.map((option: any, i: number) => {
+                  const letter = String.fromCharCode(65 + i);
+                  const optText = previewLang === "hin" ? (option.textHi || "") : (option.textEn || "");
+                  const isCorrect = option.isCorrect;
                   return (
                     <div
-                      key={letter}
+                      key={option.id || i}
                       className={`flex items-center gap-3 p-3 rounded-lg border ${isCorrect ? "border-green-500 bg-green-50" : "border-gray-200"}`}
                     >
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isCorrect ? "bg-green-500 text-white" : "border border-gray-300"}`}>
                         {isCorrect ? <CheckCircle className="w-4 h-4" /> : letter}
                       </div>
                       <span className={isCorrect ? "text-green-700 font-medium" : "text-gray-700"}
-                        dangerouslySetInnerHTML={{ __html: optText as string }}
+                        dangerouslySetInnerHTML={{ __html: optText }}
                       />
                     </div>
                   );
@@ -725,9 +728,9 @@ export default function QuestionsListPage() {
             {/* Solution */}
             <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-700 font-medium mb-1">💡 Solution</p>
-              <div 
+              <div
                 className="text-sm prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: previewLang === "hin" ? previewQuestion?.solution_hin : previewQuestion?.solution_eng }}
+                dangerouslySetInnerHTML={{ __html: String(previewLang === "hin" ? (previewQuestion?.solution_hin || '') : (previewQuestion?.solution_eng || '')) }}
               />
             </div>
 
@@ -761,7 +764,7 @@ export default function QuestionsListPage() {
               Add {selectedQuestions.length} selected questions to an existing question set.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {/* Search */}
             <div className="relative">
@@ -780,19 +783,17 @@ export default function QuestionsListPage() {
                 <button
                   key={set.id}
                   onClick={() => setSelectedSetId(set.id)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all ${
-                    selectedSetId === set.id
-                      ? "border-[#F4511E] bg-orange-50 ring-1 ring-[#F4511E]"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
+                  className={`w-full text-left p-3 rounded-lg border transition-all ${selectedSetId === set.id
+                    ? "border-[#F4511E] bg-orange-50 ring-1 ring-[#F4511E]"
+                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedSetId === set.id
-                          ? "border-[#F4511E] bg-[#F4511E]"
-                          : "border-gray-300"
-                      }`}>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedSetId === set.id
+                        ? "border-[#F4511E] bg-[#F4511E]"
+                        : "border-gray-300"
+                        }`}>
                         {selectedSetId === set.id && <Check className="w-3 h-3 text-white" />}
                       </div>
                       <div>
@@ -965,8 +966,8 @@ export default function QuestionsListPage() {
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 setShowImportDialog(false);
                 setImportFile(null);
@@ -995,6 +996,55 @@ export default function QuestionsListPage() {
                   Import Questions
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Question Dialog */}
+      <Dialog open={!!reportQuestion} onOpenChange={() => setReportQuestion(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-600" />
+              Report Question Issue
+            </DialogTitle>
+            <DialogDescription>
+              Help us improve! Tell us what's wrong with this question.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Reason</label>
+              <Select value={reportReason} onValueChange={setReportReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="typo">Typo/Grammar Error</SelectItem>
+                  <SelectItem value="wrong_answer">Wrong Answer/Key</SelectItem>
+                  <SelectItem value="missing_content">Missing Images/Text</SelectItem>
+                  <SelectItem value="other">Other Issue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Description (Optional)</label>
+              <Input
+                placeholder="Provide more details..."
+                value={reportDesc}
+                onChange={(e) => setReportDesc(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setReportQuestion(null)}>Cancel</Button>
+            <Button
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={handleReport}
+              disabled={!reportReason}
+            >
+              Submit Report
             </Button>
           </DialogFooter>
         </DialogContent>

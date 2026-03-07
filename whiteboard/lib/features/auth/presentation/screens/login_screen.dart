@@ -92,10 +92,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       _isLoading = true;
       _error = null;
     });
-    await Future.delayed(const Duration(milliseconds: 800));
     final success = await ref.read(authProvider.notifier).login(id, pass);
     if (!mounted) return;
+    
     if (!success) {
+      final authState = ref.read(authProvider);
+      String errorMessage = 'Invalid ID or password. Please try again.';
+      
+      if (authState is AsyncError) {
+        errorMessage = authState.error.toString();
+        // Remove 'Exception: ' prefix if present
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.substring(11);
+        }
+      }
+
       _failedAttempts++;
       setState(() {
         _isLoading = false;
@@ -103,9 +114,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           _error = 'Too many attempts. Locked for 30 seconds.';
           _startLockout(30);
         } else if (_failedAttempts >= 3) {
-          _error = 'Wrong credentials. ${5 - _failedAttempts} attempts left.';
+          _error = '$errorMessage ${5 - _failedAttempts} attempts left.';
         } else {
-          _error = 'Invalid ID or password. Please try again.';
+          _error = errorMessage;
         }
       });
       _triggerShake();

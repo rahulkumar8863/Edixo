@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -38,35 +38,14 @@ import { QuestionSetExportModal } from "@/components/set-system/QuestionSetExpor
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Mock set data
-const mockSetData = {
-  id: "set-482931",
-  set_code: "482931",
-  password: "738291",
-  name: "Mathematics — Algebra & Calculus",
-  description: "25 questions covering algebra equations, calculus fundamentals, and integration problems.",
-  subject: "Mathematics",
-  chapter: "Algebra",
-  visibility: "private",
-  questions: 25,
-  createdAt: "Mar 1, 2026",
-  createdBy: "Admin",
-  accessCount: 48,
-  downloadCount: 12,
-  expiresAt: null,
-  allowDownload: true,
-  showSolutions: false,
-  solutionRevealAt: null,
-};
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-// Mock questions
-const mockQuestions = [
-  { id: "Q-00001", text: "If α and β are roots of x²-5x+6=0, find α²+β²", difficulty: "easy", type: "mcq" },
-  { id: "Q-00002", text: "The value of ∫₀¹ x² dx is...", difficulty: "medium", type: "integer" },
-  { id: "Q-00003", text: "Find the derivative of sin(x)cos(x)", difficulty: "hard", type: "mcq" },
-  { id: "Q-00004", text: "Solve: 2x + 5 = 15", difficulty: "easy", type: "mcq" },
-  { id: "Q-00005", text: "Find the area under the curve y=x² from 0 to 2", difficulty: "medium", type: "integer" },
-];
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
 
 // Mock linked content
 const linkedMockTests = [
@@ -128,14 +107,61 @@ export default function SetDetailPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("questions");
 
+  const [setData, setSetData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSet = async () => {
+      try {
+        const token = getToken();
+        const res = await fetch(`${API_URL}/qbank/sets/${setId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          setSetData({
+            ...resData.data,
+            questions: resData.data.items?.map((item: any) => ({
+              id: item.question.id,
+              text: item.question.textEn || item.question.textHi || 'Untitled',
+              difficulty: item.question.difficulty?.toLowerCase() || 'medium',
+              type: item.question.type === 'MCQ_SINGLE' ? 'mcq' :
+                item.question.type === 'MCQ_MULTIPLE' ? 'multi_select' :
+                  item.question.type === 'DESCRIPTIVE' ? 'integer' : 'mcq'
+            })) || []
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching set details:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSet();
+  }, [setId]);
+
+  if (isLoading || !setData) {
+    return (
+      <div className="min-h-screen bg-neutral-bg">
+        <Sidebar />
+        <div className="ml-60 flex flex-col min-h-screen">
+          <TopBar />
+          <main className="flex-1 p-6 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F4511E]"></div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   // Copy handlers
   const copyId = () => {
-    navigator.clipboard.writeText(mockSetData.set_code);
+    navigator.clipboard.writeText(setData?.setId || "");
     toast.success("SET ID copied!");
   };
 
   const copyPassword = () => {
-    navigator.clipboard.writeText(mockSetData.password);
+    navigator.clipboard.writeText(setData?.pin || "");
     toast.success("Password copied!");
   };
 
@@ -162,7 +188,7 @@ export default function SetDetailPage() {
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Link href="/question-bank/sets" className="hover:text-[#F4511E]">Question Sets</Link>
               <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-900 font-medium">{mockSetData.name}</span>
+              <span className="text-gray-900 font-medium">{setData.name}</span>
             </div>
 
             {/* Header Card */}
@@ -170,17 +196,17 @@ export default function SetDetailPage() {
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <h1 className="text-2xl font-bold text-gray-900">{mockSetData.name}</h1>
-                    <p className="text-gray-500">{mockSetData.description}</p>
+                    <h1 className="text-2xl font-bold text-gray-900">{setData.name}</h1>
+                    <p className="text-gray-500">{setData.description || "No description provided."}</p>
                   </div>
-                  <VisibilityBadge visibility={mockSetData.visibility} />
+                  <VisibilityBadge visibility={setData.isGlobal ? "public" : "private"} />
                 </div>
 
                 {/* ID and Password Row */}
                 <div className="flex flex-wrap items-center gap-6 py-4 border-y">
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-500">ID:</span>
-                    <code className="font-mono text-lg bg-gray-50 px-3 py-1 rounded">{mockSetData.set_code}</code>
+                    <code className="font-mono text-lg bg-gray-50 px-3 py-1 rounded">{setData.setId}</code>
                     <Button variant="ghost" size="sm" onClick={copyId}>
                       <Copy className="w-4 h-4" />
                     </Button>
@@ -188,7 +214,7 @@ export default function SetDetailPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-500">Password:</span>
                     <code className="font-mono text-lg bg-gray-50 px-3 py-1 rounded">
-                      {showPassword ? mockSetData.password : "••••••"}
+                      {showPassword ? setData.pin : "••••••"}
                     </code>
                     <Button variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -208,19 +234,19 @@ export default function SetDetailPage() {
                 <div className="flex items-center gap-6 text-sm text-gray-500">
                   <div className="flex items-center gap-1">
                     <Layers className="w-4 h-4" />
-                    <span>{mockSetData.questions} Questions</span>
+                    <span>{setData.totalQuestions || 0} Questions</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
-                    <span>{mockSetData.accessCount} accesses</span>
+                    <span>0 accesses</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Download className="w-4 h-4" />
-                    <span>{mockSetData.downloadCount} downloads</span>
+                    <span>0 downloads</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    <span>Created {mockSetData.createdAt}</span>
+                    <span>Created {new Date(setData.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
 
@@ -267,7 +293,7 @@ export default function SetDetailPage() {
                   <CardContent className="p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-medium">Questions ({mockQuestions.length})</h3>
+                        <h3 className="font-medium">Questions ({setData.questions?.length})</h3>
                         <Badge className="bg-[#F4511E]">Drag to reorder</Badge>
                       </div>
                       <Button variant="outline" size="sm">
@@ -275,8 +301,8 @@ export default function SetDetailPage() {
                       </Button>
                     </div>
 
-                    <div className="space-y-2">
-                      {mockQuestions.map((q, index) => (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {setData.questions?.map((q: any, index: number) => (
                         <div
                           key={q.id}
                           draggable
@@ -463,15 +489,15 @@ export default function SetDetailPage() {
                             key={vis}
                             className={cn(
                               "flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all",
-                              mockSetData.visibility === vis ? "border-[#F4511E] bg-orange-50" : "hover:border-gray-300"
+                              (setData.isGlobal ? (vis === "public") : (vis === "private")) ? "border-[#F4511E] bg-orange-50" : "hover:border-gray-300"
                             )}
                           >
                             <input
                               type="radio"
                               name="visibility"
                               value={vis}
-                              checked={mockSetData.visibility === vis}
-                              onChange={() => {}}
+                              checked={setData.isGlobal ? (vis === "public") : (vis === "private")}
+                              onChange={() => { }}
                               className="text-[#F4511E]"
                             />
                             <div>
@@ -495,14 +521,14 @@ export default function SetDetailPage() {
                             <p className="font-medium">Allow PDF Download</p>
                             <p className="text-sm text-gray-500">Users can download content as PDF</p>
                           </div>
-                          <Switch checked={mockSetData.allowDownload} />
+                          <Switch checked={false} />
                         </div>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">Show Solutions</p>
                             <p className="text-sm text-gray-500">Display solutions after submission</p>
                           </div>
-                          <Switch checked={mockSetData.showSolutions} />
+                          <Switch checked={false} />
                         </div>
                       </div>
                     </div>
@@ -538,9 +564,9 @@ export default function SetDetailPage() {
       <ShareModal
         open={showShareModal}
         onOpenChange={setShowShareModal}
-        contentId={mockSetData.set_code}
-        contentPassword={mockSetData.password}
-        contentName={mockSetData.name}
+        contentId={setData.setId}
+        contentPassword={setData.pin}
+        contentName={setData.name}
         contentType="set"
       />
 
@@ -549,13 +575,13 @@ export default function SetDetailPage() {
         open={showExportModal}
         onOpenChange={setShowExportModal}
         questionSet={{
-          id: mockSetData.id,
-          set_code: mockSetData.set_code,
-          name: mockSetData.name,
-          description: mockSetData.description,
-          subject: mockSetData.subject,
-          chapter: mockSetData.chapter,
-          questions: mockQuestions.map((q, index) => ({
+          id: setData.id,
+          set_code: setData.setId,
+          name: setData.name,
+          description: setData.description || "",
+          subject: "General",
+          chapter: "General",
+          questions: setData.questions?.map((q: any, index: number) => ({
             id: q.id,
             text: q.text,
             difficulty: q.difficulty,
@@ -564,7 +590,7 @@ export default function SetDetailPage() {
             answer: q.type === 'mcq' ? 'A' : q.type === 'integer' ? '42' : undefined,
             explanation: 'This is the explanation for the question.',
             marks: 2,
-          })),
+          })) || [],
         }}
       />
     </div>

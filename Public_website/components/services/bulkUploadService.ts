@@ -1,7 +1,7 @@
 
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { QuestionMaster, BulkUploadBatch, BulkUploadRow, PreviewRow } from '../types';
 
 export const bulkUploadService = {
@@ -116,91 +116,53 @@ export const bulkUploadService = {
     },
 
     // 4. Batch Saving
-    async saveBatch(rows: PreviewRow[], fileName: string): Promise<{ batchId: string, savedCount: number, failedCount: number }> {
-        let currentUserId: string | null = null;
-
+    async saveBatch(fileName: string, rows: PreviewRow[]): Promise<{ batchId: string; savedCount: number; failedCount: number }> {
         try {
-            const { data, error } = await supabase.auth.getUser();
-            if (error) {
-                console.error('Error fetching current user for bulk upload:', error);
-            } else if (data?.user) {
-                currentUserId = data.user.id;
+            const response = await api.post('/qbank/bulk-upload', {
+                fileName,
+                rows: rows.map(r => ({
+                    question_text: r.question_text || '',
+                    option_a: r.option_a || '',
+                    option_b: r.option_b || '',
+                    option_c: r.option_c || '',
+                    option_d: r.option_d || '',
+                    correct_answer: r.correct_answer || '',
+                    answer_explanation: r.answer_explanation || '',
+                    difficulty_level: r.difficulty_level || 'Medium',
+                    language_type: r.language_type || 'English',
+                    isValid: r.isValid,
+                    errors: r.errors,
+                })),
+            });
+
+            if (response.success) {
+                return response.data;
+            } else {
+                throw new Error(response.message || 'Bulk upload failed');
             }
-        } catch (err) {
-            console.error('Unexpected error fetching current user for bulk upload:', err);
+        } catch (error: any) {
+            console.error('Error in bulk upload service:', error);
+            throw error;
         }
-        const validRows = rows.filter(r => r.isValid);
-        const failedRows = rows.filter(r => !r.isValid);
+    },
 
-        // Create Batch Entry
-        const { data: batchData, error: batchError } = await supabase
-            .from('bulk_upload_batches')
-            .insert({
-                upload_file_name: fileName,
-                upload_file_type: fileName.split('.').pop(),
-                total_rows_found: rows.length,
-                total_questions_saved: 0, // Update later
-                total_failed_rows: failedRows.length,
-                upload_status: 'Processing'
-            })
-            .select()
-            .single();
-
-        if (batchError || !batchData) throw new Error("Failed to create batch record");
-
-        const batchId = batchData.batch_id;
-
-        // Save Questions
-        const questionsToInsert = validRows.map(r => ({
-            question_text: r.question_text,
-            question_type: 'MCQ', // Default for now
-            option_a: r.option_a,
-            option_b: r.option_b,
-            option_c: r.option_c,
-            option_d: r.option_d,
-            correct_answer: r.correct_answer,
-            answer_explanation: r.answer_explanation,
-            subject_name: r.subject_name,
-            topic_name: r.topic_name,
-            difficulty_level: r.difficulty_level,
-            language_type: r.language_type,
-            question_source: r.question_source || 'BulkUpload',
-            is_verified: true, // Assuming bulk uploads are trusted or will be verified later
-            // Adding fields for backward compatibility with 'questions' table if needed, though we are targeting 'questions_master'
-            created_by_user_id: currentUserId
-        }));
-
-        if (questionsToInsert.length > 0) {
-            // Try inserting into questions_master
-            const { error: qError } = await supabase.from('questions_master').insert(questionsToInsert);
-
-            if (qError) {
-                console.error("Error inserting into questions_master:", qError);
-                // Fallback or specific error handling
-                await supabase.from('bulk_upload_batches').update({ upload_status: 'Failed' }).eq('batch_id', batchId);
-                throw new Error(`Failed to save questions: ${qError.message}`);
-            }
+    async getBatches(): Promise<BulkUploadBatch[]> {
+        try {
+            const res = await api.get('/qbank/bulk-upload/batches'); // Assuming this exists or I should add it
+            return res.data || [];
+        } catch (error) {
+            console.error('Error fetching batches:', error);
+            return [];
         }
+    },
 
-        // Save Failed Rows Logs
-        const errorLogs = failedRows.map(r => ({
-            batch_id: batchId,
-            row_number: r.rowNumber,
-            raw_question_text: r.question_text?.substring(0, 100) || "Unknown",
-            error_message: r.errors.join(', '),
-            error_type: 'Validation Error'
-        }));
-
-        if (errorLogs.length > 0) {
-            await supabase.from('bulk_upload_rows').insert(errorLogs);
+    async getBatchRows(batchId: string): Promise<BulkUploadRow[]> {
+        try {
+            const res = await api.get(`/qbank/bulk-upload/batches/${batchId}/rows`);
+            return res.data || [];
+        } catch (error) {
+            console.error('Error fetching batch rows:', error);
+            return [];
         }
-
-        // Update Batch Status
-        await supabase.from('bulk_upload_batches').update({
-            total_questions_saved: validRows.length,
-            upload_status: 'Completed'
-        }).eq('batch_id', batchId);
-
-        return { batchId, savedCount: validRows.length, failedCount: failedRows.length };
     }
 };

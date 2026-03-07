@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const AIStudyPlanGenerationInputSchema = z.object({
   userId: z.string().describe('The ID of the user for whom the study plan is being generated.'),

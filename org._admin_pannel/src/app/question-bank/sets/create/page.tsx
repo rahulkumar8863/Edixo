@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -40,24 +40,14 @@ import { useSetCreationStore } from "@/components/set-system/stores/setStore";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Mock questions for demo
-const mockQuestions = [
-  { id: "Q-00001", question_eng: "Which law states F = ma?", type: "mcq", subject: "Physics", difficulty: "easy" },
-  { id: "Q-00002", question_eng: "What is the molecular formula of Glucose?", type: "mcq", subject: "Chemistry", difficulty: "medium" },
-  { id: "Q-00003", question_eng: "What is H₂SO₄ called?", type: "mcq", subject: "Chemistry", difficulty: "easy" },
-  { id: "Q-00004", question_eng: "If a body is dropped from 45m, find time to reach ground", type: "integer", subject: "Physics", difficulty: "medium" },
-  { id: "Q-00005", question_eng: "Which organelle is the powerhouse of the cell?", type: "mcq", subject: "Biology", difficulty: "easy" },
-  { id: "Q-00006", question_eng: "Solve: ∫₀¹ x² dx", type: "integer", subject: "Mathematics", difficulty: "medium" },
-  { id: "Q-00007", question_eng: "Find the derivative of sin(x)cos(x)", type: "mcq", subject: "Mathematics", difficulty: "hard" },
-  { id: "Q-00008", question_eng: "What is the SI unit of electric current?", type: "mcq", subject: "Physics", difficulty: "easy" },
-];
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-// Mock orgs
-const mockOrgs = [
-  { id: "org-1", name: "Apex Academy", role: "Admin" },
-  { id: "org-2", name: "Study Circle", role: "Teacher" },
-  { id: "org-3", name: "Bright Future Institute", role: "Teacher" },
-];
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
 
 // Difficulty badge component
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
@@ -117,6 +107,41 @@ export default function CreateSetPage() {
   const [showExpiry, setShowExpiry] = useState(false);
   const [showAddQuestions, setShowAddQuestions] = useState(false);
   const [selectedToAdd, setSelectedToAdd] = useState<string[]>([]);
+  const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
+  const [orgs, setOrgs] = useState<any[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = getToken();
+        setIsDataLoading(true);
+
+        // Fetch Questions
+        const qRes = await fetch(`${API_URL}/qbank/questions`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (qRes.ok) {
+          const { data } = await qRes.json();
+          setAvailableQuestions(data?.questions || []);
+        }
+
+        // Fetch Orgs (This might stay as is if the backend route is correct)
+        const orgRes = await fetch(`${API_URL}/organizations`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (orgRes.ok) {
+          const { data } = await orgRes.json();
+          setOrgs(data || []);
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setIsDataLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Calculate difficulty breakdown
   const difficultyBreakdown = {
@@ -155,13 +180,13 @@ export default function CreateSetPage() {
 
   // Add selected questions
   const handleAddSelected = () => {
-    const newQuestions = mockQuestions.filter(q => selectedToAdd.includes(q.id)).map(q => ({
+    const newQuestions = availableQuestions.filter(q => selectedToAdd.includes(q.id)).map(q => ({
       ...q,
-      question_hin: "",
-      visibility: "public",
-      pointCost: 5,
-      usageCount: 0,
-      answer: "A",
+      question_hin: q.question_hin || "",
+      visibility: q.visibility || "public",
+      pointCost: q.pointCost || 0,
+      usageCount: q.usageCount || 0,
+      answer: q.answer || "",
     }));
     addQuestions(newQuestions);
     setSelectedToAdd([]);
@@ -391,7 +416,7 @@ export default function CreateSetPage() {
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-gray-700">Select Organizations</label>
                           <div className="space-y-2">
-                            {mockOrgs.map((org) => (
+                            {orgs.map((org) => (
                               <label
                                 key={org.id}
                                 className="flex items-center gap-3 p-3 bg-white border rounded-lg cursor-pointer hover:border-gray-300"
@@ -404,10 +429,13 @@ export default function CreateSetPage() {
                                 />
                                 <div>
                                   <p className="text-sm font-medium">{org.name}</p>
-                                  <p className="text-xs text-gray-500">{org.role}</p>
+                                  <p className="text-xs text-gray-500">{org.role || 'Partner'}</p>
                                 </div>
                               </label>
                             ))}
+                            {orgs.length === 0 && !isDataLoading && (
+                              <p className="text-sm text-gray-500 italic">No organizations found.</p>
+                            )}
                           </div>
                         </div>
                       )}
@@ -577,35 +605,45 @@ export default function CreateSetPage() {
               </div>
 
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {mockQuestions.map((q) => {
-                  const isSelected = selectedToAdd.includes(q.id);
-                  return (
-                    <label
-                      key={q.id}
-                      className={cn(
-                        "flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all",
-                        isSelected ? "border-[#F4511E] bg-orange-50" : "border-gray-200 hover:border-gray-300"
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => {
-                          setSelectedToAdd(prev =>
-                            isSelected ? prev.filter(id => id !== q.id) : [...prev, q.id]
-                          );
-                        }}
-                        className="w-4 h-4 text-[#F4511E] rounded"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-700">{q.question_eng}</p>
-                        <p className="text-xs text-gray-500">{q.subject}</p>
-                      </div>
-                      <TypeBadge type={q.type} />
-                      <DifficultyBadge difficulty={q.difficulty} />
-                    </label>
-                  );
-                })}
+                {isDataLoading ? (
+                  <div className="text-center py-20 text-gray-400 italic">
+                    Loading questions...
+                  </div>
+                ) : availableQuestions.length > 0 ? (
+                  availableQuestions.map((q) => {
+                    const isSelected = selectedToAdd.includes(q.id);
+                    return (
+                      <label
+                        key={q.id}
+                        className={cn(
+                          "flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all",
+                          isSelected ? "border-[#F4511E] bg-orange-50" : "border-gray-200 hover:border-gray-300"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedToAdd(prev =>
+                              isSelected ? prev.filter(id => id !== q.id) : [...prev, q.id]
+                            );
+                          }}
+                          className="w-4 h-4 text-[#F4511E] rounded"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-700 truncate max-w-[400px]">{q.question_eng}</p>
+                          <p className="text-xs text-gray-500">{q.subject} › {q.chapter}</p>
+                        </div>
+                        <TypeBadge type={q.type} />
+                        <DifficultyBadge difficulty={q.difficulty} />
+                      </label>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-20 text-gray-400 italic">
+                    No questions found in Question Bank.
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-between items-center pt-4 border-t">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -40,24 +40,23 @@ import { useSetCreationStore } from "@/components/set-system/stores/setStore";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Mock questions for demo
-const mockQuestions = [
-  { id: "Q-00001", question_eng: "Which law states F = ma?", type: "mcq", subject: "Physics", difficulty: "easy" },
-  { id: "Q-00002", question_eng: "What is the molecular formula of Glucose?", type: "mcq", subject: "Chemistry", difficulty: "medium" },
-  { id: "Q-00003", question_eng: "What is H₂SO₄ called?", type: "mcq", subject: "Chemistry", difficulty: "easy" },
-  { id: "Q-00004", question_eng: "If a body is dropped from 45m, find time to reach ground", type: "integer", subject: "Physics", difficulty: "medium" },
-  { id: "Q-00005", question_eng: "Which organelle is the powerhouse of the cell?", type: "mcq", subject: "Biology", difficulty: "easy" },
-  { id: "Q-00006", question_eng: "Solve: ∫₀¹ x² dx", type: "integer", subject: "Mathematics", difficulty: "medium" },
-  { id: "Q-00007", question_eng: "Find the derivative of sin(x)cos(x)", type: "mcq", subject: "Mathematics", difficulty: "hard" },
-  { id: "Q-00008", question_eng: "What is the SI unit of electric current?", type: "mcq", subject: "Physics", difficulty: "easy" },
-];
+// Global API utility
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-// Mock orgs
-const mockOrgs = [
-  { id: "org-1", name: "Apex Academy", role: "Admin" },
-  { id: "org-2", name: "Study Circle", role: "Teacher" },
-  { id: "org-3", name: "Bright Future Institute", role: "Teacher" },
-];
+function getToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : '';
+}
+
+// Map backend types/difficulties if needed
+const mapDifficulty = (d: string) => d?.toLowerCase() || 'medium';
+const mapType = (t: string) => {
+  if (t === 'MCQ_SINGLE') return 'mcq';
+  if (t === 'MCQ_MULTIPLE') return 'multi_select';
+  if (t === 'DESCRIPTIVE') return 'integer';
+  return 'mcq';
+};
 
 // Difficulty badge component
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
@@ -118,6 +117,51 @@ export default function CreateSetPage() {
   const [showAddQuestions, setShowAddQuestions] = useState(false);
   const [selectedToAdd, setSelectedToAdd] = useState<string[]>([]);
 
+  const [apiQuestions, setApiQuestions] = useState<any[]>([]);
+  const [loadedOrgs, setLoadedOrgs] = useState<any[]>([]);
+
+  // Load questions and organizations from API
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const token = getToken();
+        // Fetch Questions
+        const qRes = await fetch(`${API_URL}/qbank/questions?limit=100`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (qRes.ok) {
+          const resData = await qRes.json();
+          // Map to local format
+          const mappedQuestions = (resData.data?.questions || []).map((q: any) => ({
+            id: q.id,
+            question_eng: q.textEn || q.textHi || 'Untitled',
+            type: mapType(q.type),
+            subject: q.folder?.name || 'General',
+            difficulty: mapDifficulty(q.difficulty),
+            question_hin: q.textHi || '',
+            visibility: q.isGlobal ? 'public' : 'private',
+            pointCost: q.pointCost || 5,
+            usageCount: q.usageCount || 0,
+            answer: 'A', // Placeholder for set building UI compatibility
+          }));
+          setApiQuestions(mappedQuestions);
+        }
+
+        // Fetch Organizations
+        const orgRes = await fetch(`${API_URL}/super-admin/organizations?limit=100`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (orgRes.ok) {
+          const resData = await orgRes.json();
+          setLoadedOrgs(resData.data?.organizations || []);
+        }
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+      }
+    };
+    fetchResources();
+  }, []);
+
   // Calculate difficulty breakdown
   const difficultyBreakdown = {
     easy: questions.filter(q => q.difficulty === "easy").length,
@@ -155,14 +199,7 @@ export default function CreateSetPage() {
 
   // Add selected questions
   const handleAddSelected = () => {
-    const newQuestions = mockQuestions.filter(q => selectedToAdd.includes(q.id)).map(q => ({
-      ...q,
-      question_hin: "",
-      visibility: "public",
-      pointCost: 5,
-      usageCount: 0,
-      answer: "A",
-    }));
+    const newQuestions = apiQuestions.filter(q => selectedToAdd.includes(q.id));
     addQuestions(newQuestions);
     setSelectedToAdd([]);
     setShowAddQuestions(false);
@@ -390,8 +427,8 @@ export default function CreateSetPage() {
                       {visibility === "org_only" && (
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-gray-700">Select Organizations</label>
-                          <div className="space-y-2">
-                            {mockOrgs.map((org) => (
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {loadedOrgs.map((org) => (
                               <label
                                 key={org.id}
                                 className="flex items-center gap-3 p-3 bg-white border rounded-lg cursor-pointer hover:border-gray-300"
@@ -404,7 +441,7 @@ export default function CreateSetPage() {
                                 />
                                 <div>
                                   <p className="text-sm font-medium">{org.name}</p>
-                                  <p className="text-xs text-gray-500">{org.role}</p>
+                                  <p className="text-xs text-gray-500">Org ID: {org.orgId}</p>
                                 </div>
                               </label>
                             ))}
@@ -577,7 +614,7 @@ export default function CreateSetPage() {
               </div>
 
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {mockQuestions.map((q) => {
+                {apiQuestions.map((q) => {
                   const isSelected = selectedToAdd.includes(q.id);
                   return (
                     <label
