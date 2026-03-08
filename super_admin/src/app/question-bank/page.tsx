@@ -83,8 +83,8 @@ function getToken(): string {
 }
 
 export default function QuestionBankPage() {
-    const { isOpen } = useSidebarStore();
-const [stats, setStats] = useState<any[]>([
+  const { isOpen } = useSidebarStore();
+  const [stats, setStats] = useState<any[]>([
     { label: "Total Questions", value: 0, change: "+0 this month", icon: BookOpen, color: "orange" },
     { label: "Public Questions", value: 0, change: "+0 this month", icon: Globe, color: "blue" },
     { label: "Sets Created", value: 0, change: "+0 this month", icon: Layers, color: "purple" },
@@ -144,10 +144,12 @@ const [stats, setStats] = useState<any[]>([
                     AI Generate
                   </Button>
                 </Link>
-                <Button variant="outline" className="btn-secondary">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import CSV
-                </Button>
+                <Link href="/question-bank/questions?action=import">
+                  <Button variant="outline" className="btn-secondary">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import CSV
+                  </Button>
+                </Link>
                 <Link href="/question-bank/create">
                   <Button className="btn-primary">
                     <Plus className="w-4 h-4 mr-2" />
