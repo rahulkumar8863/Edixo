@@ -125,12 +125,15 @@ const quickActions = [
 // Recent searches (persisted in localStorage)
 const recentSearchKey = "eduhub-recent-searches";
 
+import { useSidebarStore } from "@/store/sidebarStore";
+
 export function TopBar() {
   const pathname = usePathname();
   const router = useRouter();
   const [commandOpen, setCommandOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const { isOpen, toggle } = useSidebarStore();
+
   // Recent searches - initialize from localStorage on client
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     // This runs only on initial render
@@ -162,7 +165,7 @@ export function TopBar() {
   // Build breadcrumb
   const pathSegments = pathname.split("/").filter(Boolean);
   const breadcrumbs = [{ label: "Home", href: "/" }];
-  
+
   let currentPath = "";
   pathSegments.forEach((segment) => {
     currentPath += `/${segment}`;
@@ -213,13 +216,25 @@ export function TopBar() {
   // Filter search results based on query
   const filteredResults = searchQuery
     ? searchResults.filter((r) =>
-        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.id.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.id.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : [];
 
   return (
-    <header className="sticky top-0 z-40 h-16 bg-white border-b border-neutral-border flex items-center px-6 gap-4">
+    <header className="sticky top-0 z-40 h-16 bg-white border-b border-neutral-border flex items-center px-6 gap-4 shrink-0 transition-all duration-300">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggle}
+          className="h-8 w-8 text-gray-500 hover:text-gray-900 focus:outline-none"
+          title={isOpen ? "Hide Sidebar" : "Show Sidebar"}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M9 3v18" /></svg>
+        </Button>
+      </div>
+
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1 text-sm flex-1">
         {breadcrumbs.map((crumb, index) => (
@@ -229,11 +244,10 @@ export function TopBar() {
             )}
             <a
               href={crumb.href}
-              className={`${
-                index === breadcrumbs.length - 1
+              className={`${index === breadcrumbs.length - 1
                   ? "text-gray-900 font-medium"
                   : "text-gray-500 hover:text-gray-700"
-              } transition-colors`}
+                } transition-colors`}
             >
               {crumb.label}
             </a>
@@ -279,23 +293,21 @@ export function TopBar() {
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-3 rounded-lg border transition-colors cursor-pointer ${
-                  notification.read
+                className={`p-3 rounded-lg border transition-colors cursor-pointer ${notification.read
                     ? "bg-gray-50 border-gray-100"
                     : "bg-brand-primary-tint border-brand-primary/20"
-                }`}
+                  }`}
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className={`w-2 h-2 rounded-full mt-2 ${
-                      notification.type === "org"
+                    className={`w-2 h-2 rounded-full mt-2 ${notification.type === "org"
                         ? "bg-green-500"
                         : notification.type === "payment"
-                        ? "bg-orange-500"
-                        : notification.type === "alert"
-                        ? "bg-yellow-500"
-                        : "bg-blue-500"
-                    }`}
+                          ? "bg-orange-500"
+                          : notification.type === "alert"
+                            ? "bg-yellow-500"
+                            : "bg-blue-500"
+                      }`}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-gray-900">
@@ -366,7 +378,7 @@ export function TopBar() {
         />
         <CommandList className="max-h-[400px]">
           <CommandEmpty>No results found.</CommandEmpty>
-          
+
           {/* Show quick actions when query starts with > */}
           {searchQuery.startsWith(">") && (
             <CommandGroup heading="Quick Actions">
@@ -460,7 +472,7 @@ export function TopBar() {
                   <CommandSeparator />
                 </>
               )}
-              
+
               {filteredResults.filter((r) => r.type === "user").length > 0 && (
                 <>
                   <CommandGroup heading="Users">
@@ -483,7 +495,7 @@ export function TopBar() {
                   <CommandSeparator />
                 </>
               )}
-              
+
               {filteredResults.filter((r) => r.type === "question").length > 0 && (
                 <>
                   <CommandGroup heading="Questions">
@@ -506,7 +518,7 @@ export function TopBar() {
                   <CommandSeparator />
                 </>
               )}
-              
+
               {filteredResults.filter((r) => r.type === "invoice").length > 0 && (
                 <CommandGroup heading="Invoices">
                   {filteredResults

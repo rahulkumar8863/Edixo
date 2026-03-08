@@ -209,12 +209,17 @@ function NavItemComponent({ item, pathname }: { item: NavItem; pathname: string 
   );
 }
 
+import { useSidebarStore } from "@/store/sidebarStore";
+
 export function Sidebar() {
   const pathname = usePathname();
+  const { isOpen } = useSidebarStore();
+
+  if (!isOpen) return null;
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className="fixed left-0 top-0 h-screen bg-brand-dark flex flex-col z-50 w-60">
+      <aside className="fixed left-0 top-0 h-screen bg-brand-dark flex flex-col z-50 w-60 transition-all duration-300">
         {/* Logo Block */}
         <div className="h-[72px] flex items-center px-4 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3">
