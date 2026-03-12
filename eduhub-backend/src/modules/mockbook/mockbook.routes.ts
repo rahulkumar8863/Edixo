@@ -325,9 +325,8 @@ router.get('/public', async (req, res, next) => {
         const org = orgId ? await prisma.organization.findFirst({ where: { orgId: orgId as string } }) : null;
 
         const where: any = { isPublic: true, status: 'LIVE' };
-        where.OR = [{ orgId: null }];
         if (org) {
-            where.OR.push({ orgId: org.id });
+            where.orgId = org.id;
         }
 
         const tests = await prisma.mockTest.findMany({
@@ -337,7 +336,10 @@ router.get('/public', async (req, res, next) => {
             take: 50,
         });
         res.json({ success: true, data: tests });
-    } catch (err) { next(err); }
+    } catch (err) { 
+        console.error("Error in /public route:", err);
+        next(err); 
+    }
 });
 
 // Leaderboard for a test
