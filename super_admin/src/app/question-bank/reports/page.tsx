@@ -66,7 +66,7 @@ interface QuestionReport {
 
 function getToken(): string {
     if (typeof document === 'undefined') return '';
-    const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+    const match = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
     return match ? match[1] : '';
 }
 

@@ -71,7 +71,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
-import { MockBookOrgSwitcher } from "@/components/mockbook/MockBookOrgSwitcher";
+import { useOrg } from "@/providers/OrgProvider";
 import { toast } from "sonner";
 
 // ─────────────────────────────────────────────
@@ -212,22 +212,26 @@ const examCategories = [
 export default function MockBookPage() {
   const { isOpen } = useSidebarStore();
   const router = useRouter();
+  const { selectedOrgId, organizations, isLoading: orgsLoading } = useOrg();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [seriesSearch, setSeriesSearch] = useState("");
   const [seriesCategoryFilter, setSeriesCategoryFilter] = useState("all");
   const [seriesStatusFilter, setSeriesStatusFilter] = useState("all");
-  const [showOrgSwitcher, setShowOrgSwitcher] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<MockBookStats | null>(null);
   const [folders, setFolders] = useState<ExamFolder[]>([]);
 
+  const selectedOrg = organizations.find(o => o.orgId === selectedOrgId);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         const [statsRes, foldersRes] = await Promise.all([
-          mockbookService.getStats(),
-          mockbookService.getFolders()
+          mockbookService.getStats(selectedOrgId || undefined),
+          mockbookService.getFolders(selectedOrgId || undefined)
         ]);
         setStats(statsRes);
         setFolders(foldersRes);
@@ -239,7 +243,7 @@ export default function MockBookPage() {
       }
     };
     fetchData();
-  }, []);
+  }, [selectedOrgId]);
 
   const dashboardStats = [
     {
@@ -299,11 +303,6 @@ export default function MockBookPage() {
     return matchSearch && matchCat && matchStatus;
   });
 
-  const handleOrgSelect = (org: { id: string; name: string }) => {
-    setShowOrgSwitcher(false);
-    router.push(`/mockbook/org/${org.id}`);
-  };
-
   const liveCount = mockLiveTests.filter(t => t.status === "live").length;
 
   return (
@@ -345,22 +344,35 @@ export default function MockBookPage() {
             </div>
 
             {/* Org Management Card */}
-            <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-white">
+            <Card className="border-brand-primary/20 bg-gradient-to-r from-brand-primary/5 to-white shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white">
-                      <Building2 className="w-6 h-6" />
+                    <div className="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                      {selectedOrg?.logoUrl ? (
+                        <img src={selectedOrg.logoUrl} alt={selectedOrg.name} className="w-8 h-8 object-contain" />
+                      ) : (
+                        <Building2 className="w-6 h-6" />
+                      )}
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-900">Manage Organization MockBook</div>
-                      <div className="text-sm text-gray-500">Select an organization to manage their MockTests, Packs, Students, and more</div>
+                      <div className="font-semibold text-gray-900 flex items-center gap-2">
+                        Managing: {selectedOrg?.name || "Global Platform"}
+                        <Badge variant="outline" className="text-[10px] bg-white">ID: {selectedOrgId || "Global"}</Badge>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {selectedOrgId ? "Full control over organization mock-tests, series, and analytics" : "Select an organization from the sidebar to manage specific data"}
+                      </div>
                     </div>
                   </div>
-                  <Button onClick={() => setShowOrgSwitcher(true)} className="btn-primary">
-                    Select Organization
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
+                  {selectedOrgId && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/organizations/${selectedOrgId}`}>
+                         Settings
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -969,12 +981,6 @@ export default function MockBookPage() {
           </div>
         </main>
       </div>
-
-      <MockBookOrgSwitcher
-        open={showOrgSwitcher}
-        onSelect={handleOrgSelect}
-        onClose={() => setShowOrgSwitcher(false)}
-      />
     </div>
   );
 }

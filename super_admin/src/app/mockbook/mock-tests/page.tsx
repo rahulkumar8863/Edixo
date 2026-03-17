@@ -34,8 +34,7 @@ import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
 import { mockbookService, MockTest, ExamSeries, ExamSubCategory } from "@/services/mockbookService";
 import { toast } from "sonner";
-
-const ORG_ID = process.env.NEXT_PUBLIC_ORG_ID || "GK-ORG-00001";
+import { useOrg } from "@/providers/OrgProvider";
 
 function StatusBadge({ status }: { status: string }) {
     const cfg: Record<string, { label: string; cls: string; icon: any }> = {
@@ -54,6 +53,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function MockTestsPage() {
     const { isOpen } = useSidebarStore();
     const router = useRouter();
+    const { selectedOrgId } = useOrg();
     const [tests, setTests] = useState<MockTest[]>([]);
     const [series, setSeries] = useState<ExamSeries[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -76,11 +76,12 @@ export default function MockTestsPage() {
     const [deleteConfirm, setDeleteConfirm] = useState<MockTest | null>(null);
 
     const loadData = async () => {
+        if (!selectedOrgId) return;
         try {
             setIsLoading(true);
             const [testsData, seriesData] = await Promise.all([
-                mockbookService.getAdminTests({ orgId: ORG_ID }),
-                mockbookService.getSeries(),
+                mockbookService.getAdminTests({ orgId: selectedOrgId }),
+                mockbookService.getSeries(undefined, selectedOrgId),
             ]);
             setTests(testsData);
             setSeries(seriesData);
@@ -91,7 +92,7 @@ export default function MockTestsPage() {
         }
     };
 
-    useEffect(() => { loadData(); }, []);
+    useEffect(() => { loadData(); }, [selectedOrgId]);
 
     // When series filter changes, load subcategories
     useEffect(() => {
@@ -122,7 +123,7 @@ export default function MockTestsPage() {
         setSaving(true);
         try {
             await mockbookService.createMockTest({
-                orgId: ORG_ID,
+                orgId: selectedOrgId || "demo-org",
                 name: form.name,
                 description: form.description || undefined,
                 durationMins: Number(form.durationMins),

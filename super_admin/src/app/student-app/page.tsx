@@ -2,7 +2,7 @@
 import { useSidebarStore } from "@/store/sidebarStore";
 import { cn } from "@/lib/utils";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -54,6 +54,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
+import { useOrg } from "@/providers/OrgProvider";
+import { studentAppService, PersonalizationSettings } from "@/services/studentAppService";
+import { toast } from "sonner";
 
 // Mock students data
 const students = [
@@ -192,38 +195,59 @@ const availableBadges = [
 ];
 
 export default function StudentAppPage() {
-    const { isOpen } = useSidebarStore();
-const [searchQuery, setSearchQuery] = useState("");
-  const [orgFilter, setOrgFilter] = useState("all");
+  const { isOpen } = useSidebarStore();
+  const { selectedOrgId, organizations } = useOrg();
+  
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Gamification config state
-  const [gamificationConfig, setGamificationConfig] = useState(defaultGamificationConfig);
+  const [isLoading, setIsLoading] = useState(true);
+  const [studentList, setStudentList] = useState<any[]>([]);
+  const [gamificationConfig, setGamificationConfig] = useState<PersonalizationSettings>({});
 
-  // Badge state
+  const selectedOrg = organizations.find(o => o.orgId === selectedOrgId);
+
+  useEffect(() => {
+    const fetchOrgData = async () => {
+      if (!selectedOrgId) return;
+      try {
+        setIsLoading(true);
+        const [studentsRes, personalizationRes] = await Promise.all([
+          studentAppService.getStudents(selectedOrgId, searchQuery),
+          studentAppService.getPersonalization(selectedOrgId)
+        ]);
+        setStudentList(studentsRes);
+        if (personalizationRes) {
+          setGamificationConfig(personalizationRes);
+        }
+      } catch (error) {
+        console.error("Failed to fetch student app data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrgData();
+  }, [selectedOrgId, searchQuery]);
+
+  const handleSavePersonalization = async () => {
+    if (!selectedOrgId) return;
+    try {
+      await studentAppService.updatePersonalization(selectedOrgId, gamificationConfig);
+      toast.success("Personalization settings updated successfully");
+    } catch (error) {
+      console.error("Failed to update personalization:", error);
+      toast.error("Failed to update settings");
+    }
+  };
+
   const [badges, setBadges] = useState(availableBadges);
 
   const clearFilters = () => {
     setSearchQuery("");
-    setOrgFilter("all");
     setStatusFilter("all");
   };
 
-  const hasActiveFilters = searchQuery || orgFilter !== "all" || statusFilter !== "all";
-
-  // Get unique orgs
-  const organizations = [...new Set(students.map((s) => s.organization))];
-
-  // Filter students
-  const filteredStudents = students.filter((student) => {
-    const matchesSearch =
-      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesOrg = orgFilter === "all" || student.organization === orgFilter;
-    const matchesStatus = statusFilter === "all" || student.status === statusFilter;
-    return matchesSearch && matchesOrg && matchesStatus;
-  });
+  const hasActiveFilters = searchQuery || statusFilter !== "all";
 
   const toggleBadge = (id: string) => {
     setBadges(badges.map(b => b.id === id ? { ...b, enabled: !b.enabled } : b));
@@ -306,19 +330,6 @@ const [searchQuery, setSearchQuery] = useState("");
                           className="pl-9 input-field"
                         />
                       </div>
-                      <Select value={orgFilter} onValueChange={setOrgFilter}>
-                        <SelectTrigger className="w-[180px] input-field">
-                          <SelectValue placeholder="Organization" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Organizations</SelectItem>
-                          {organizations.map((org) => (
-                            <SelectItem key={org} value={org}>
-                              {org}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="w-[130px] input-field">
                           <SelectValue placeholder="Status" />
@@ -335,6 +346,12 @@ const [searchQuery, setSearchQuery] = useState("");
                           Clear Filters
                         </Button>
                       )}
+                      
+                      <div className="ml-auto flex items-center gap-2">
+                        <Badge variant="outline" className="text-brand-primary border-brand-primary/20 bg-brand-primary/5">
+                          {selectedOrg?.name || "Global"}
+                        </Badge>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -357,46 +374,49 @@ const [searchQuery, setSearchQuery] = useState("");
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredStudents.map((student) => (
+                        {isLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={9} className="text-center py-8 text-gray-400">
+                              Loading students...
+                            </TableCell>
+                          </TableRow>
+                        ) : studentList.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={9} className="text-center py-8 text-gray-400">
+                              No students found for this organization.
+                            </TableCell>
+                          </TableRow>
+                        ) : studentList.map((student) => (
                           <TableRow key={student.id} className="hover:bg-brand-primary-tint">
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar className="w-8 h-8">
                                   <AvatarFallback className="bg-gray-200 text-gray-600 text-sm font-medium">
-                                    {student.name.split(" ").map((n) => n[0]).join("")}
+                                    {student.name ? student.name.split(" ").map((n: string) => n[0]).join("") : "U"}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
                                   <div className="font-medium text-gray-900">{student.name}</div>
-                                  <div className="text-xs text-gray-500">{student.email}</div>
+                                  <div className="text-xs text-gray-500">{student.phone || "No phone"}</div>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className="font-mono text-xs text-gray-600">{student.id}</span>
+                              <span className="font-mono text-xs text-gray-600">{student.studentId}</span>
                             </TableCell>
                             <TableCell>
-                              <Link
-                                href={`/organizations/${student.orgId}`}
-                                className="text-sm text-gray-700 hover:text-brand-primary"
-                              >
-                                {student.organization}
-                              </Link>
+                              {selectedOrg?.name || "Global"}
                             </TableCell>
                             <TableCell>
-                              <AppAccessBadge access={student.appAccess} />
+                              <Badge variant="outline">{student.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
                             </TableCell>
                             <TableCell>
-                              {student.linkedTeacherId ? (
-                                <span className="font-mono text-xs">{student.linkedTeacherId}</span>
-                              ) : (
-                                <span className="text-xs text-gray-400">—</span>
-                              )}
+                              <span className="text-xs text-gray-400">—</span>
                             </TableCell>
-                            <TableCell className="text-sm text-gray-500">{student.lastActive}</TableCell>
-                            <TableCell className="text-center text-sm">{student.testsTaken}</TableCell>
+                            <TableCell className="text-sm text-gray-500">{new Date(student.createdAt).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-center text-sm">{student.totalAttempts}</TableCell>
                             <TableCell>
-                              <StatusBadge status={student.status} />
+                              <StatusBadge status={student.isActive ? "Active" : "Suspended"} />
                             </TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
@@ -409,19 +429,6 @@ const [searchQuery, setSearchQuery] = useState("");
                                   <DropdownMenuItem>
                                     <Eye className="w-4 h-4 mr-2" /> View Profile
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <KeyRound className="w-4 h-4 mr-2" /> Reset Password
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  {student.status === "Active" ? (
-                                    <DropdownMenuItem className="text-orange-600">
-                                      <Ban className="w-4 h-4 mr-2" /> Suspend
-                                    </DropdownMenuItem>
-                                  ) : (
-                                    <DropdownMenuItem className="text-green-600">
-                                      Reactivate
-                                    </DropdownMenuItem>
-                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
@@ -435,14 +442,14 @@ const [searchQuery, setSearchQuery] = useState("");
                 {/* Pagination */}
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-500">
-                    Showing 1–{filteredStudents.length} of {students.length}
+                    Showing {studentList.length} students
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" disabled>
                       <ChevronLeft className="w-4 h-4 mr-1" />
                       Prev
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" disabled>
                       Next
                       <ChevronRight className="w-4 h-4 ml-1" />
                     </Button>
@@ -458,9 +465,9 @@ const [searchQuery, setSearchQuery] = useState("");
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
                         <Gamepad2 className="w-5 h-5 text-purple-600" />
-                        Global Points Configuration
+                        {selectedOrg?.name || "Organization"} Points Configuration
                       </CardTitle>
-                      <CardDescription>Org Admin can override from their panel</CardDescription>
+                      <CardDescription>Configure points and bonuses for this organization</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
@@ -468,7 +475,7 @@ const [searchQuery, setSearchQuery] = useState("");
                           <Label>Points per correct answer</Label>
                           <Input
                             type="number"
-                            value={gamificationConfig.pointsPerCorrect}
+                            value={gamificationConfig.pointsPerCorrect || 0}
                             onChange={(e) =>
                               setGamificationConfig({
                                 ...gamificationConfig,
@@ -482,7 +489,7 @@ const [searchQuery, setSearchQuery] = useState("");
                           <Label>Points deducted per wrong</Label>
                           <Input
                             type="number"
-                            value={gamificationConfig.pointsDeductedPerWrong}
+                            value={gamificationConfig.pointsDeductedPerWrong || 0}
                             onChange={(e) =>
                               setGamificationConfig({
                                 ...gamificationConfig,
@@ -496,7 +503,7 @@ const [searchQuery, setSearchQuery] = useState("");
                           <Label>Daily login bonus</Label>
                           <Input
                             type="number"
-                            value={gamificationConfig.dailyLoginBonus}
+                            value={gamificationConfig.dailyLoginBonus || 0}
                             onChange={(e) =>
                               setGamificationConfig({
                                 ...gamificationConfig,
@@ -510,7 +517,7 @@ const [searchQuery, setSearchQuery] = useState("");
                           <Label>Test completion bonus</Label>
                           <Input
                             type="number"
-                            value={gamificationConfig.testCompletionBonus}
+                            value={gamificationConfig.testCompletionBonus || 0}
                             onChange={(e) =>
                               setGamificationConfig({
                                 ...gamificationConfig,
@@ -524,7 +531,7 @@ const [searchQuery, setSearchQuery] = useState("");
                           <Label>Perfect score bonus</Label>
                           <Input
                             type="number"
-                            value={gamificationConfig.perfectScoreBonus}
+                            value={gamificationConfig.perfectScoreBonus || 0}
                             onChange={(e) =>
                               setGamificationConfig({
                                 ...gamificationConfig,
@@ -534,29 +541,10 @@ const [searchQuery, setSearchQuery] = useState("");
                             className="input-field"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Streak multiplier (from Day 7)</Label>
-                          <Select
-                            value={gamificationConfig.streakMultiplier}
-                            onValueChange={(v) =>
-                              setGamificationConfig({ ...gamificationConfig, streakMultiplier: v })
-                            }
-                          >
-                            <SelectTrigger className="input-field">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1.5x">1.5x</SelectItem>
-                              <SelectItem value="2x">2x</SelectItem>
-                              <SelectItem value="2.5x">2.5x</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
                       <div className="flex gap-2 pt-4">
-                        <Button className="btn-primary">Save Configuration</Button>
-                        <Button variant="outline" className="btn-secondary">
-                          Reset to Defaults
+                        <Button className="btn-primary" onClick={handleSavePersonalization}>
+                          Save Configuration
                         </Button>
                       </div>
                     </CardContent>

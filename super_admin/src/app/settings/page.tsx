@@ -33,6 +33,9 @@ import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
 import { toast } from "sonner";
 
+import { api } from "@/lib/api";
+import { useEffect } from "react";
+
 export default function SettingsPage() {
     const { isOpen } = useSidebarStore();
 const [platformName, setPlatformName] = useState("EduHub");
@@ -47,9 +50,53 @@ const [platformName, setPlatformName] = useState("EduHub");
 
   const [defaultAICost, setDefaultAICost] = useState("5");
   const [pointRate, setPointRate] = useState("1");
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    toast.success("Settings saved successfully!");
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const json = await api.get('/super-admin/settings');
+        if (json.success && json.data) {
+          const s = json.data;
+          if (s.platformName) setPlatformName(s.platformName);
+          if (s.platformUrl) setPlatformUrl(s.platformUrl);
+          if (s.supportEmail) setSupportEmail(s.supportEmail);
+          if (s.defaultCurrency) setDefaultCurrency(s.defaultCurrency);
+          if (s.defaultLanguage) setDefaultLanguage(s.defaultLanguage);
+          if (s.timeZone) setTimeZone(s.timeZone);
+          if (s.sessionTimeout) setSessionTimeout(s.sessionTimeout);
+          if (s.mfaRequired !== undefined) setMfaRequired(s.mfaRequired === 'true');
+          if (s.defaultAICost) setDefaultAICost(s.defaultAICost);
+          if (s.pointRate) setPointRate(s.pointRate);
+        }
+      } catch (err) {
+        console.error("Fetch settings error:", err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await api.patch('/super-admin/settings', {
+        platformName,
+        platformUrl,
+        supportEmail,
+        defaultCurrency,
+        defaultLanguage,
+        timeZone,
+        sessionTimeout,
+        mfaRequired: String(mfaRequired),
+        defaultAICost,
+        pointRate,
+      });
+      toast.success("Settings saved successfully!");
+    } catch (err) {
+      toast.error("Failed to save settings");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReset = () => {

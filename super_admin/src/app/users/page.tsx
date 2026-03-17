@@ -50,13 +50,7 @@ import {
 import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
-function getToken(): string {
-  if (typeof document === 'undefined') return '';
-  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
-  return match ? match[1] : '';
-}
+import { api } from "@/lib/api";
 
 // Role Badge Component
 function RoleBadge({ role }: { role: string }) {
@@ -109,23 +103,21 @@ const [users, setUsers] = useState<any[]>([]);
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-      });
-      if (searchQuery) params.append('search', searchQuery);
-      if (roleFilter !== 'all') params.append('role', roleFilter);
-      if (statusFilter !== 'all') params.append('status', statusFilter);
+      const params: any = {
+        page,
+        limit,
+      };
+      if (searchQuery) params.search = searchQuery;
+      if (roleFilter !== 'all') params.role = roleFilter;
+      if (statusFilter !== 'all') params.status = statusFilter;
 
-      const res = await fetch(`${API_URL}/super-admin/users?${params.toString()}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        const json = await res.json();
+      const json = await api.get('/super-admin/users', { params });
+      if (json.success) {
         setUsers(json.data.users);
         setTotalCount(json.data.total);
       }
+    } catch (err) {
+      console.error("Fetch users error:", err);
     } finally {
       setLoading(false);
     }

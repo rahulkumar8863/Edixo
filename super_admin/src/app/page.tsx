@@ -1,4 +1,5 @@
 "use client";
+import { api } from "@/lib/api";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { cn } from "@/lib/utils";
 
@@ -56,30 +57,24 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-function getToken(): string {
-  if (typeof document === 'undefined') return '';
-  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
-  return match ? match[1] : '';
-}
-
 async function fetchDashboard() {
-  const token = getToken();
-  const res = await fetch(`${API_URL}/super-admin/dashboard`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data;
+  try {
+    const json = await api.get('/super-admin/dashboard');
+    return json.data;
+  } catch (err) {
+    console.error("Dashboard fetch error:", err);
+    return null;
+  }
 }
 
 async function fetchRecentOrgs() {
-  const token = getToken();
-  const res = await fetch(`${API_URL}/super-admin/organizations?limit=5`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) return [];
-  const json = await res.json();
-  return json.data?.orgs ?? [];
+  try {
+    const json = await api.get('/super-admin/organizations?limit=5');
+    return json.data?.orgs ?? [];
+  } catch (err) {
+    console.error("Orgs fetch error:", err);
+    return [];
+  }
 }
 
 // KPI Data
@@ -428,6 +423,21 @@ const [dashStats, setDashStats] = useState<any>(null);
     }))
     : planDistribution;
 
+  const displayActivityData = dashStats?.recentActivity?.length > 0
+    ? dashStats.recentActivity.map((log: any) => ({
+        id: log.id,
+        type: log.action.toLowerCase().includes('create') ? 'org' : 
+              log.action.toLowerCase().includes('payment') ? 'payment' : 'alert',
+        title: log.action,
+        message: `${log.actorName} ${log.action.toLowerCase()} ${log.resource || ''}`,
+        time: new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }))
+    : activityData;
+
+  const displayRevenueData = dashStats?.revenueHistory?.length > 0
+    ? dashStats.revenueHistory
+    : revenueData;
+
   return (
     <div className="min-h-screen bg-neutral-bg">
       <Sidebar />
@@ -440,7 +450,7 @@ const [dashStats, setDashStats] = useState<any>(null);
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Welcome back, Platform Owner 👋</h1>
                 <p className="text-gray-500 text-sm mt-1">
-                  Today: Sunday, March 01, 2026 — Platform Health:{" "}
+                  Today: {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} — Platform Health:{" "}
                   <span className="inline-flex items-center gap-1">
                     <span className="w-2 h-2 bg-green-500 rounded-full" />
                     <span className="text-green-600 font-medium">All Systems Normal</span>
@@ -530,7 +540,7 @@ const [dashStats, setDashStats] = useState<any>(null);
                 <CardContent>
                   <div className="h-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={revenueData}>
+                      <AreaChart data={displayRevenueData}>
                         <defs>
                           <linearGradient id="colorMrr" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#F4511E" stopOpacity={0.2} />
@@ -577,7 +587,7 @@ const [dashStats, setDashStats] = useState<any>(null);
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar">
-                    {activityData.map((activity) => (
+                    {displayActivityData.map((activity: any) => (
                       <div key={activity.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                         <div
                           className={`w-2 h-2 rounded-full mt-2 shrink-0 ${activity.type === "org"

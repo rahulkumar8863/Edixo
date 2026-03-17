@@ -350,7 +350,13 @@ export function TopBar() {
             Help & Support
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-red-600">
+          <DropdownMenuItem 
+            className="text-red-600 cursor-pointer"
+            onClick={() => {
+              document.cookie = "sb_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+              router.push("/login");
+            }}
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </DropdownMenuItem>

@@ -87,6 +87,7 @@ model Organization {
   questionSets            QuestionSet[]
   questions               Question[]
   students                Student[]
+  whiteboardSettings      WhiteboardSettings?
   studyPlanTemplates      StudyPlanTemplate[]
 
   @@map("organizations")
@@ -694,6 +695,26 @@ model OrgPersonalizationSettings {
   @@map("org_personalization_settings")
 }
 
+model WhiteboardSettings {
+  id                  String       @id @default(uuid())
+  orgId               String       @unique
+  aiAssistant         Boolean      @default(true)
+  periodicTable       Boolean      @default(true)
+  shapeBuilder3D      Boolean      @default(true)
+  attendance          Boolean      @default(true)
+  homeworkGenerator   Boolean      @default(true)
+  splitScreen         Boolean      @default(true)
+  mathTools           Boolean      @default(true)
+  chemistryTools      Boolean      @default(true)
+  physicsSimulations  Boolean      @default(true)
+  allowedGrades       Int[]        @default([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+  globalAiTokenLimit  Int          @default(5000)
+  updatedAt           DateTime     @updatedAt
+  org                 Organization @relation(fields: [orgId], references: [id])
+
+  @@map("whiteboard_settings")
+}
+
 model AdminCuratedSuggestion {
   id                  String       @id @default(uuid())
   orgId               String
@@ -1135,4 +1156,27 @@ enum ReportStatus {
   PENDING
   RESOLVED
   REJECTED
+}
+
+model PlatformAuditLog {
+  id        String   @id @default(uuid())
+  actorId   String
+  actorType String
+  actorName String
+  action    String
+  resource  String?
+  changes   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("platform_audit_logs")
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_settings")
 }

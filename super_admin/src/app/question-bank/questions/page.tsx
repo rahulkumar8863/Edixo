@@ -6,7 +6,9 @@ import { useSidebarStore } from "@/store/sidebarStore";
 import { cn } from "@/lib/utils";
 import { QuestionsList } from "@/components/qbank/QuestionsList";
 
-export default function QuestionsViewPage() {
+import { Suspense } from "react";
+
+function QuestionsViewContent() {
   const { isOpen } = useSidebarStore();
 
   return (
@@ -21,5 +23,17 @@ export default function QuestionsViewPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function QuestionsViewPage() {
+  return (
+    <Suspense fallback={
+       <div className="flex h-screen items-center justify-center">
+         <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+       </div>
+    }>
+      <QuestionsViewContent />
+    </Suspense>
   );
 }

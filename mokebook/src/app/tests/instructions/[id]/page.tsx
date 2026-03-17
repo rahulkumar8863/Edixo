@@ -29,15 +29,20 @@ export default function TestInstructionsPage() {
   const [language, setLanguage] = useState("");
   const [declared, setDeclared] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [testMeta, setTestMeta] = useState<any>(null);
 
   const testId = params?.id ? String(params.id) : "demo-test";
 
-  // Fetch student name from API
+  // Fetch student name + test metadata
   useEffect(() => {
     apiFetch("/students/me").then(res => {
       if (res.data?.name) setDisplayName(res.data.name);
     }).catch(() => {});
-  }, []);
+
+    apiFetch(`/mockbook/tests/${testId}`).then(res => {
+      if (res.data) setTestMeta(res.data);
+    }).catch(() => {});
+  }, [testId]);
 
   const handleBegin = () => {
     if (step === 1) {
@@ -48,10 +53,14 @@ export default function TestInstructionsPage() {
     if (language && declared) {
       setIsNavigating(true);
       setTimeout(() => {
-        window.location.href = `/tests/exam/${testId}`;
+        router.push(`/tests/exam/${testId}`);
       }, 300);
     }
   };
+
+  const totalQuestions = testMeta?.sections?.reduce(
+    (sum: number, s: any) => sum + (s._count?.items || s.questionCount || 0), 0
+  ) || 0;
 
   return (
     <div className="flex flex-col h-screen bg-[#f0f4f7] font-sans overflow-hidden">
@@ -66,7 +75,7 @@ export default function TestInstructionsPage() {
           </div>
           <div className="h-5 w-px bg-slate-200 mx-1 md:mx-2" />
           <h1 className="text-[11px] md:text-[13px] font-medium text-slate-600 truncate max-w-[150px] sm:max-w-none">
-            Instructions: {testId.toUpperCase()}
+            {testMeta?.name || `Instructions: ${testId.toUpperCase()}`}
           </h1>
         </div>
       </header>
@@ -125,17 +134,17 @@ export default function TestInstructionsPage() {
             <div className="flex flex-col min-h-full animate-in slide-in-from-right duration-300">
               <div className="flex-1 p-4 md:p-8">
                 <div className="max-w-4xl mx-auto space-y-6">
-                  <h2 className="text-xl md:text-2xl font-bold text-slate-800 text-center mb-4 md:mb-8">Test Summary & Final Rules</h2>
+                  <h2 className="text-xl md:text-2xl font-bold text-slate-800 text-center mb-4 md:mb-8">Test Summary &amp; Final Rules</h2>
                   
                   <div className="flex justify-between items-center text-[11px] md:text-[13px] font-bold text-slate-700 border-b pb-2">
-                    <span>Duration: 35 Mins</span>
-                    <span>Max Marks: 40</span>
+                    <span>Duration: {testMeta?.durationMins || "--"} Mins</span>
+                    <span>Max Marks: {testMeta?.totalMarks || "--"}</span>
                   </div>
 
                   <div className="space-y-4">
                     <h3 className="text-[12px] md:text-[13px] font-bold text-slate-800 uppercase tracking-tight">Read Carefully Before Beginning</h3>
                     <ol className="list-decimal pl-5 space-y-3 text-[12px] md:text-[13px] text-slate-600 leading-relaxed">
-                      <li>The test contains 10 total questions.</li>
+                      <li>The test contains {totalQuestions > 0 ? totalQuestions : "multiple"} total questions.</li>
                       <li>Negative marking: 0.33 will be deducted for each wrong answer.</li>
                       <li>Click "READY TO BEGIN" to start the exam timer.</li>
                     </ol>

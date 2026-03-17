@@ -44,7 +44,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 function getToken(): string {
   if (typeof document === 'undefined') return '';
-  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  const match = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
   return match ? match[1] : '';
 }
 

@@ -45,6 +45,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { OrgSwitcher } from "./OrgSwitcher";
 
 interface NavItem {
   label: string;
@@ -260,6 +261,9 @@ export function Sidebar() {
             </div>
           </div>
         </div>
+
+        {/* Global Org Switcher */}
+        <OrgSwitcher />
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 custom-scrollbar">

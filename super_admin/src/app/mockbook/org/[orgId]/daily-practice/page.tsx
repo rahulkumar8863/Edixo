@@ -26,7 +26,7 @@ import { Progress } from "@/components/ui/progress";
 
 const getToken = () => {
   if (typeof document === "undefined") return "";
-  const m = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  const m = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
   return m ? m[1] : "";
 };
 

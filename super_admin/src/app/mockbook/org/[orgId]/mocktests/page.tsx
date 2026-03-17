@@ -179,7 +179,7 @@ const params = useParams();
     // Dynamic fetch: load org and tests
     const fetchData = async () => {
       try {
-        const tokenMatch = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+        const tokenMatch = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
         const token = tokenMatch ? tokenMatch[1] : '';
         
         // Fetch Org Details
@@ -226,7 +226,7 @@ const params = useParams();
   const fetchTests = async (folderId: string | null) => {
     try {
       const testsRes = await fetch(`http://localhost:4000/api/mockbook/admin/tests?orgId=${orgId}${folderId ? `&categoryId=${folderId}` : ''}`, {
-        headers: { 'Authorization': `Bearer ${document.cookie.match(/(?:^|;\s*)token=([^;]*)/)?.[1] || ''}` }
+        headers: { 'Authorization': `Bearer ${document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/)?.[1] || ''}` }
       });
       const testsData = await testsRes.json();
       if (testsData.success) {
@@ -239,7 +239,7 @@ const params = useParams();
 
   const fetchSeries = async (examFolderId: string) => {
     try {
-      const tokenMatch = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+      const tokenMatch = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
       const token = tokenMatch ? tokenMatch[1] : '';
       const res = await fetch(`http://localhost:4000/api/mockbook/categories?folderId=${examFolderId}&orgId=${orgId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -255,7 +255,7 @@ const params = useParams();
 
   const fetchSubFolders = async (seriesId: string, parentId: string | null = null) => {
     try {
-      const tokenMatch = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+      const tokenMatch = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
       const token = tokenMatch ? tokenMatch[1] : '';
       const res = await fetch(`http://localhost:4000/api/mockbook/subcategories?categoryId=${seriesId}${parentId ? `&parentId=${parentId}` : '&parentId=null'}&orgId=${orgId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -317,7 +317,7 @@ const params = useParams();
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
     try {
-      const tokenMatch = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+      const tokenMatch = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
       const token = tokenMatch ? tokenMatch[1] : '';
       
       let url = 'http://localhost:4000/api/mockbook/';
@@ -367,7 +367,7 @@ const params = useParams();
     if (!confirm(`Are you sure you want to delete this ${type}? All nested content will be lost.`)) return;
 
     try {
-      const tokenMatch = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+      const tokenMatch = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
       const token = tokenMatch ? tokenMatch[1] : '';
       
       let url = `http://localhost:4000/api/mockbook/`;
@@ -402,7 +402,7 @@ const params = useParams();
   const fetchQBankSets = async () => {
     try {
       setIsLoadingSets(true);
-      const tokenMatch = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+      const tokenMatch = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
       const token = tokenMatch ? tokenMatch[1] : '';
       const response = await fetch(`http://localhost:4000/api/qbank/sets?limit=50`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -433,7 +433,7 @@ const params = useParams();
 
   const handleCreateTest = async () => {
     try {
-      const tokenMatch = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+      const tokenMatch = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
       const token = tokenMatch ? tokenMatch[1] : '';
       
       const payload = {

@@ -169,10 +169,13 @@ router.post('/login', async (req, res, next) => {
                 permissions: staff.permissions,
             };
         } else {
-            // STUDENT login with Student ID
+            // STUDENT login with Student ID or Email
             const student = await prisma.student.findFirst({
                 where: {
-                    studentId: body.studentId,
+                    OR: [
+                        { studentId: body.studentId },
+                        { email: body.email }
+                    ],
                     org: { orgId: body.orgId },
                 },
                 include: { user: true, org: true },
@@ -188,6 +191,8 @@ router.post('/login', async (req, res, next) => {
             tokenPayload = {
                 userId: student.userId,
                 studentId: student.studentId,
+                email: student.email,
+                name: student.name,
                 orgId: student.org.orgId,
                 orgDbId: student.orgId,
                 role: 'STUDENT',

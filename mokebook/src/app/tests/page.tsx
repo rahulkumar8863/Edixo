@@ -81,7 +81,7 @@ export default function TestSeriesPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-white">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 to-white overflow-hidden">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
@@ -144,7 +144,7 @@ export default function TestSeriesPage() {
                         <p className="text-xs font-semibold">Loading Live Tests...</p>
                     </div>
                 ) : liveQuizzes.length > 0 ? liveQuizzes.map((quiz) => (
-                  <Link key={quiz.id} href={`/tests/instructions/${quiz.id}`} className="group block">
+                  <Link key={quiz.id} href={`/tests/instructions/${quiz.testId || quiz.id}`} className="group block">
                     <Card className="relative overflow-hidden shadow-sm hover:shadow-md transition-all border-none bg-white flex flex-col h-full rounded-2xl card-hover">
                       <div className="relative aspect-video w-full shrink-0 overflow-hidden">
                         <Image src={`https://picsum.photos/seed/${quiz.id}/640/360`} alt={quiz.name} fill className="object-cover transition-transform group-hover:scale-105 duration-500" />

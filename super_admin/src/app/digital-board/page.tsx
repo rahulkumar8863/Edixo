@@ -42,7 +42,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
+import { useOrg } from "@/providers/OrgProvider";
+import { digitalBoardService, WhiteboardSettings } from "@/services/digitalBoardService";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 // Live sessions data
 const liveSessions = [
@@ -195,9 +200,43 @@ function PlatformBadge({ platform }: { platform: string }) {
 }
 
 export default function DigitalBoardPage() {
-    const { isOpen } = useSidebarStore();
-const [searchQuery, setSearchQuery] = useState("");
+  const { isOpen } = useSidebarStore();
+  const { selectedOrgId, organizations } = useOrg();
+  const [searchQuery, setSearchQuery] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [wbSettings, setWbSettings] = useState<WhiteboardSettings | null>(null);
+
+  const selectedOrg = organizations.find(o => o.orgId === selectedOrgId);
+
+  useEffect(() => {
+    const fetchOrgData = async () => {
+      if (!selectedOrgId) return;
+      try {
+        setIsLoading(true);
+        const settingsRes = await digitalBoardService.getSettings(selectedOrgId);
+        setWbSettings(settingsRes);
+      } catch (error) {
+        console.error("Failed to fetch digital board settings:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrgData();
+  }, [selectedOrgId]);
+
+  const handleUpdateSetting = async (key: keyof WhiteboardSettings, value: any) => {
+    if (!selectedOrgId || !wbSettings) return;
+    const newSettings = { ...wbSettings, [key]: value };
+    setWbSettings(newSettings);
+    try {
+      await digitalBoardService.updateSettings(selectedOrgId, { [key]: value });
+      toast.success("Settings updated");
+    } catch (error) {
+      toast.error("Failed to update settings");
+      setWbSettings(wbSettings); // Rollback
+    }
+  };
 
   const handleEndSession = (sessionId: string) => {
     toast.success(`Session ${sessionId} ended successfully`);
@@ -306,6 +345,9 @@ const [searchQuery, setSearchQuery] = useState("");
                 <TabsTrigger value="assets" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white">
                   Assets
                 </TabsTrigger>
+                <TabsTrigger value="settings" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white">
+                  Settings
+                </TabsTrigger>
               </TabsList>
 
               {/* Live Sessions Tab */}
@@ -333,7 +375,9 @@ const [searchQuery, setSearchQuery] = useState("");
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {liveSessions.map((session) => (
+                        {liveSessions
+                          .filter(s => !selectedOrgId || s.organization === selectedOrg?.name || s.organization === "Public Access")
+                          .map((session) => (
                           <TableRow key={session.id} className="hover:bg-brand-primary-tint">
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -547,6 +591,141 @@ const [searchQuery, setSearchQuery] = useState("");
                     Drawing asset library coming soon...
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              {/* Settings Tab */}
+              <TabsContent value="settings" className="mt-6 space-y-6">
+                {!selectedOrgId ? (
+                  <Card>
+                    <CardContent className="p-12 text-center text-gray-500">
+                      Please select an organization to manage whiteboard settings
+                    </CardContent>
+                  </Card>
+                ) : isLoading ? (
+                  <div className="flex items-center justify-center p-12">
+                    <RefreshCw className="w-8 h-8 text-brand-primary animate-spin" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Core Features</CardTitle>
+                        <CardDescription>Toggle main whiteboard functionalities</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>AI Assistant</Label>
+                            <p className="text-sm text-gray-500">Enable AI-powered drawing and explanations</p>
+                          </div>
+                          <Switch 
+                            checked={wbSettings?.aiAssistant} 
+                            onCheckedChange={(v) => handleUpdateSetting('aiAssistant', v)} 
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>Homework Generator</Label>
+                            <p className="text-sm text-gray-500">Auto-generate assignments from board content</p>
+                          </div>
+                          <Switch 
+                            checked={wbSettings?.homeworkGenerator} 
+                            onCheckedChange={(v) => handleUpdateSetting('homeworkGenerator', v)} 
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>Attendance Tracking</Label>
+                            <p className="text-sm text-gray-500">Auto-mark attendance for session viewers</p>
+                          </div>
+                          <Switch 
+                            checked={wbSettings?.attendance} 
+                            onCheckedChange={(v) => handleUpdateSetting('attendance', v)} 
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>Split Screen Mode</Label>
+                            <p className="text-sm text-gray-500">Allow multiple boards in one view</p>
+                          </div>
+                          <Switch 
+                            checked={wbSettings?.splitScreen} 
+                            onCheckedChange={(v) => handleUpdateSetting('splitScreen', v)} 
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Subject-Specific Tools</CardTitle>
+                        <CardDescription>Enable specialized toolsets for different subjects</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>Math Tools</Label>
+                            <p className="text-sm text-gray-500">Calculators, geometry tools, and equations</p>
+                          </div>
+                          <Switch 
+                            checked={wbSettings?.mathTools} 
+                            onCheckedChange={(v) => handleUpdateSetting('mathTools', v)} 
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>Chemistry Suite</Label>
+                            <p className="text-sm text-gray-500">Periodic table and molecular structure drawing</p>
+                          </div>
+                          <Switch 
+                            checked={wbSettings?.chemistryTools || wbSettings?.periodicTable} 
+                            onCheckedChange={(v) => {
+                              handleUpdateSetting('chemistryTools', v);
+                              handleUpdateSetting('periodicTable', v);
+                            }} 
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>Physics Simulations</Label>
+                            <p className="text-sm text-gray-500">Interactive 3D models and force simulations</p>
+                          </div>
+                          <Switch 
+                            checked={wbSettings?.physicsSimulations || wbSettings?.shapeBuilder3D} 
+                            onCheckedChange={(v) => {
+                              handleUpdateSetting('physicsSimulations', v);
+                              handleUpdateSetting('shapeBuilder3D', v);
+                            }} 
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="md:col-span-2">
+                      <CardHeader>
+                        <CardTitle>Usage Controls</CardTitle>
+                        <CardDescription>Manage resource limits and access</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Global AI Token Limit</Label>
+                            <div className="flex gap-2">
+                              <Input 
+                                type="number" 
+                                value={wbSettings?.globalAiTokenLimit} 
+                                onChange={(e) => handleUpdateSetting('globalAiTokenLimit', parseInt(e.target.value))}
+                                className="max-w-[150px]"
+                              />
+                              <Button variant="outline" size="sm">Set Limit</Button>
+                            </div>
+                            <p className="text-xs text-gray-500">Total monthly AI tokens shared across all boards</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>

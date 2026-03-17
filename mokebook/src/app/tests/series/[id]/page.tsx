@@ -85,11 +85,11 @@ export default function SeriesDetailPage() {
   const totalTests = allTests.length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8fafc] overflow-x-hidden">
+    <div className="flex flex-col h-screen bg-[#f8fafc] overflow-hidden">
       <Navbar />
-      <div className="flex-1 flex w-full max-w-full">
+      <div className="flex-1 flex overflow-hidden w-full max-w-full">
         <Sidebar />
-        <main className="flex-1 p-3 md:p-6 space-y-6 w-full max-w-full overflow-hidden">
+        <main className="flex-1 p-3 md:p-6 space-y-6 w-full max-w-full overflow-y-auto thin-scrollbar">
 
           <Button
             variant="ghost"

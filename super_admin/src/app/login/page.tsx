@@ -19,7 +19,8 @@ export default function SuperAdminLogin() {
         setLoading(true);
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000/api'}/auth/login`, {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+            const res = await fetch(`${apiUrl}/auth/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -32,7 +33,7 @@ export default function SuperAdminLogin() {
             if (data.success) {
                 // Use a simple API route or js-cookie to set the token, then redirect.
                 // For simplicity right now, we stash it in localStorage and use a simple document.cookie hack or rely on middleware.
-                document.cookie = `token=${data.data.accessToken}; path=/; max-age=86400;`;
+                document.cookie = `sb_token=${data.data.accessToken}; path=/; max-age=86400;`;
                 toast.success("Login successful!");
                 router.push("/");
             } else {

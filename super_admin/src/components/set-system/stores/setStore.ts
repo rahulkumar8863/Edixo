@@ -52,7 +52,6 @@ interface SetCreationState {
   createdSet: { id: string; contentId: string; password: string; name: string } | null;
   isLoading: boolean;
 
-  // Actions
   setStep: (step: 1 | 2 | 3) => void;
   setQuestions: (questions: Question[]) => void;
   addQuestions: (questions: Question[]) => void;
@@ -71,21 +70,11 @@ interface SetCreationState {
   reset: () => void;
 }
 
-// Generate unique 6-digit ID
-const generateId = (): string => {
-  return String(Math.floor(100000 + Math.random() * 900000));
-};
-
-// Generate unique 6-digit password
-const generatePassword = (): string => {
-  return String(Math.floor(100000 + Math.random() * 900000));
-};
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 function getToken(): string {
   if (typeof document === 'undefined') return '';
-  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  const match = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
   return match ? match[1] : '';
 }
 
@@ -128,14 +117,11 @@ export const useSetCreationStore = create<SetCreationState>((set, get) => ({
 
   submit: async () => {
     const state = get();
-    if (!state.name || state.questions.length === 0) {
-      return;
-    }
+    if (!state.name || state.questions.length === 0) return;
 
     set({ isLoading: true });
     try {
       const token = getToken();
-      // The backend expects questionIds as an array of strings
       const questionIds = state.questions.map(q => q.id);
 
       const response = await fetch(`${API_URL}/qbank/sets`, {
@@ -149,14 +135,12 @@ export const useSetCreationStore = create<SetCreationState>((set, get) => ({
           description: state.description,
           questionIds: questionIds,
           folderId: state.folderId,
-          // visibility: state.visibility, 
         })
       });
 
       if (response.ok) {
         const resData = await response.json();
         const setObj = resData.data;
-
         set({
           createdSet: {
             id: setObj.id,
@@ -199,6 +183,7 @@ interface MockTestSection {
   id: string;
   name: string;
   setId: string;
+  setDbId?: string;
   password: string;
   verified: boolean;
   setData?: {
@@ -216,24 +201,33 @@ interface MockTestSection {
 interface MockTestCreationState {
   name: string;
   category: string;
+  orgId: string;
+  folderId: string;
+  categoryId: string;
+  subCategoryId: string;
   duration: number;
   marksCorrect: number;
   marksWrong: number;
   instructions: string;
   visibility: "private" | "org_only" | "public";
+  isPublic: boolean;
   sections: MockTestSection[];
   questionOrder: "section_wise" | "shuffle_all" | "shuffle_within_section";
-  createdMock: { id: string; contentId: string; password: string; name: string; sections: MockTestSection[] } | null;
+  createdMock: { id: string; testId: string; name: string; sections: MockTestSection[] } | null;
   isLoading: boolean;
 
-  // Actions
   setName: (name: string) => void;
   setCategory: (category: string) => void;
+  setOrgId: (orgId: string) => void;
+  setFolderId: (id: string) => void;
+  setCategoryId: (id: string) => void;
+  setSubCategoryId: (id: string) => void;
   setDuration: (duration: number) => void;
   setMarksCorrect: (marks: number) => void;
   setMarksWrong: (marks: number) => void;
   setInstructions: (instructions: string) => void;
   setVisibility: (visibility: "private" | "org_only" | "public") => void;
+  setIsPublic: (isPublic: boolean) => void;
   setQuestionOrder: (order: "section_wise" | "shuffle_all" | "shuffle_within_section") => void;
   addSection: () => void;
   removeSection: (id: string) => void;
@@ -243,59 +237,23 @@ interface MockTestCreationState {
   reset: () => void;
   initFromSet: (setData: { id: string; contentId: string; name: string; questionCount: number; password: string }) => void;
 
-  // Computed
   getTotalQuestions: () => number;
   getTotalCreators: () => Creator[];
 }
 
-// Mock sets data for verification with creator info
-const mockSetsData: Record<string, { id: string; contentId: string; name: string; questionCount: number; difficulty: { easy: number; medium: number; hard: number }; password: string; creator: Creator }> = {
-  "482931": {
-    id: "set-1",
-    contentId: "482931",
-    name: "Mathematics — Algebra & Calculus",
-    questionCount: 25,
-    difficulty: { easy: 8, medium: 12, hard: 5 },
-    password: "738291",
-    creator: { id: "u1", name: "Rahul Kumar", email: "rahul@apex.edu", role: "Teacher", org: "Apex Academy", setsCreated: 8, memberSince: "Jan 2025" }
-  },
-  "591047": {
-    id: "set-2",
-    contentId: "591047",
-    name: "English Grammar & Comprehension",
-    questionCount: 25,
-    difficulty: { easy: 10, medium: 10, hard: 5 },
-    password: "492018",
-    creator: { id: "u2", name: "Priya Singh", email: "priya@apex.edu", role: "Teacher", org: "Apex Academy", setsCreated: 5, memberSince: "Feb 2025" }
-  },
-  "673829": {
-    id: "set-3",
-    contentId: "673829",
-    name: "Reasoning — Verbal & Non-Verbal",
-    questionCount: 25,
-    difficulty: { easy: 6, medium: 14, hard: 5 },
-    password: "381927",
-    creator: { id: "u3", name: "Amit Sharma", email: "amit@apex.edu", role: "Teacher", org: "Apex Academy", setsCreated: 12, memberSince: "Dec 2024" }
-  },
-  "784930": {
-    id: "set-4",
-    contentId: "784930",
-    name: "General Knowledge",
-    questionCount: 25,
-    difficulty: { easy: 12, medium: 8, hard: 5 },
-    password: "573810",
-    creator: { id: "u4", name: "Sunita Devi", email: "sunita@apex.edu", role: "Teacher", org: "Apex Academy", setsCreated: 6, memberSince: "Jan 2025" }
-  },
-};
-
 export const useMockTestCreationStore = create<MockTestCreationState>((set, get) => ({
   name: "",
   category: "",
+  orgId: "demo-org",
+  folderId: "",
+  categoryId: "",
+  subCategoryId: "",
   duration: 60,
-  marksCorrect: 2,
-  marksWrong: -0.5,
+  marksCorrect: 1,
+  marksWrong: -0.33,
   instructions: "",
   visibility: "private",
+  isPublic: true,
   sections: [
     { id: "section-1", name: "Section 1", setId: "", password: "", verified: false },
   ],
@@ -305,11 +263,16 @@ export const useMockTestCreationStore = create<MockTestCreationState>((set, get)
 
   setName: (name) => set({ name }),
   setCategory: (category) => set({ category }),
+  setOrgId: (orgId) => set({ orgId }),
+  setFolderId: (folderId) => set({ folderId }),
+  setCategoryId: (categoryId) => set({ categoryId }),
+  setSubCategoryId: (subCategoryId) => set({ subCategoryId }),
   setDuration: (duration) => set({ duration }),
   setMarksCorrect: (marksCorrect) => set({ marksCorrect }),
   setMarksWrong: (marksWrong) => set({ marksWrong }),
   setInstructions: (instructions) => set({ instructions }),
   setVisibility: (visibility) => set({ visibility }),
+  setIsPublic: (isPublic) => set({ isPublic }),
   setQuestionOrder: (questionOrder) => set({ questionOrder }),
 
   addSection: () => set((state) => ({
@@ -329,9 +292,9 @@ export const useMockTestCreationStore = create<MockTestCreationState>((set, get)
 
   verifySection: async (id) => {
     const section = get().sections.find(s => s.id === id);
-    if (!section || !section.setId || !section.password) {
+    if (!section || !section.setId) {
       set((state) => ({
-        sections: state.sections.map(s => s.id === id ? { ...s, error: "Please enter both Set ID and Password" } : s)
+        sections: state.sections.map(s => s.id === id ? { ...s, error: "Please enter the Set ID" } : s)
       }));
       return;
     }
@@ -340,34 +303,66 @@ export const useMockTestCreationStore = create<MockTestCreationState>((set, get)
       sections: state.sections.map(s => s.id === id ? { ...s, error: undefined, verified: false } : s)
     }));
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      const token = getToken();
 
-    const setData = mockSetsData[section.setId];
+      // Try direct fetch by DB id first
+      let setObj: any = null;
+      const directRes = await fetch(`${API_URL}/qbank/sets/${section.setId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
 
-    if (setData && setData.password === section.password) {
+      if (directRes.ok) {
+        const dd = await directRes.json();
+        setObj = dd.data;
+      }
+
+      if (!setObj) {
+        // Try searching by setId (6-digit code)
+        const searchRes = await fetch(`${API_URL}/qbank/sets?limit=10&page=1`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (searchRes.ok) {
+          const sd = await searchRes.json();
+          const sets = sd.data?.sets || sd.data || [];
+          setObj = sets.find((s: any) => s.setId === section.setId || s.id === section.setId);
+        }
+      }
+
+      if (!setObj) {
+        set((state) => ({
+          sections: state.sections.map(s => s.id === id ? {
+            ...s, verified: false,
+            error: "Set not found. Please paste the Set DB-ID (from Q-Bank > Sets page)."
+          } : s)
+        }));
+        return;
+      }
+
       set((state) => ({
         sections: state.sections.map(s => s.id === id ? {
           ...s,
           verified: true,
-          name: s.name || setData.name.split(" — ")[0],
+          setDbId: setObj.id,
+          name: s.name || setObj.name,
           setData: {
-            id: setData.id,
-            contentId: setData.contentId,
-            name: setData.name,
-            questionCount: setData.questionCount,
-            difficulty: setData.difficulty,
-            creator: setData.creator
+            id: setObj.id,
+            contentId: setObj.setId,
+            name: setObj.name,
+            questionCount: setObj._count?.items || setObj.totalQuestions || 0,
+            difficulty: { easy: 0, medium: setObj._count?.items || setObj.totalQuestions || 0, hard: 0 },
+            creator: {
+              id: "system", name: "Q-Bank", email: "", role: "Admin", org: "EduHub",
+              setsCreated: 0, memberSince: ""
+            }
           },
           error: undefined
         } : s)
       }));
-    } else {
+    } catch (err: any) {
       set((state) => ({
         sections: state.sections.map(s => s.id === id ? {
-          ...s,
-          verified: false,
-          error: "Invalid Set ID or Password. Please try again."
+          ...s, verified: false, error: err.message || "Verification failed."
         } : s)
       }));
     }
@@ -375,31 +370,87 @@ export const useMockTestCreationStore = create<MockTestCreationState>((set, get)
 
   submit: async () => {
     const state = get();
-
-    // Check all sections are verified
-    const allVerified = state.sections.every(s => s.verified);
-    if (!allVerified || !state.name) {
-      return;
-    }
+    const allVerified = state.sections.every(s => s.verified && s.setDbId);
+    if (!allVerified || !state.name || !state.orgId) return;
 
     set({ isLoading: true });
+    try {
+      const token = getToken();
+      const totalQuestions = state.sections.reduce((t, s) => t + (s.setData?.questionCount || 0), 0);
+      const totalMarks = totalQuestions * state.marksCorrect;
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+      // Step 1: Create the mock test
+      const testRes = await fetch(`${API_URL}/mockbook/admin/tests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          orgId: state.orgId,
+          name: state.name,
+          description: state.instructions || `Mock test with ${totalQuestions} questions`,
+          durationMins: state.duration,
+          totalMarks,
+          subCategoryId: state.subCategoryId || null,
+          isPublic: state.isPublic,
+          shuffleQuestions: state.questionOrder === 'shuffle_all',
+          maxAttempts: 1,
+          showResult: true,
+          scheduledAt: null,
+          endsAt: null,
+        })
+      });
 
-    const contentId = generateId();
-    const password = generatePassword();
+      if (!testRes.ok) {
+        const err = await testRes.json();
+        throw new Error(err.message || "Failed to create mock test");
+      }
 
-    set({
-      createdMock: {
-        id: `mock-${contentId}`,
-        contentId: contentId,
-        password: password,
-        name: state.name,
-        sections: state.sections
-      },
-      isLoading: false
-    });
+      const testData = await testRes.json();
+      const createdTest = testData.data;
+
+      // Step 2: Add sections (question sets) to the test
+      for (const section of state.sections) {
+        if (!section.setDbId) continue;
+        await fetch(`${API_URL}/mockbook/admin/tests/${createdTest.id}/sections`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            setId: section.setDbId,
+            name: section.name || section.setData?.name || "Section",
+            durationMins: null
+          })
+        });
+      }
+
+      // Step 3: Set status to LIVE
+      await fetch(`${API_URL}/mockbook/admin/tests/${createdTest.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ status: 'LIVE' })
+      });
+
+      set({
+        createdMock: {
+          id: createdTest.id,
+          testId: createdTest.testId,
+          name: state.name,
+          sections: state.sections
+        },
+        isLoading: false
+      });
+    } catch (error: any) {
+      console.error("Mock test creation error:", error);
+      set({ isLoading: false });
+      throw error;
+    }
   },
 
   getTotalQuestions: () => {
@@ -419,11 +470,16 @@ export const useMockTestCreationStore = create<MockTestCreationState>((set, get)
   reset: () => set({
     name: "",
     category: "",
+    orgId: "demo-org",
+    folderId: "",
+    categoryId: "",
+    subCategoryId: "",
     duration: 60,
-    marksCorrect: 2,
-    marksWrong: -0.5,
+    marksCorrect: 1,
+    marksWrong: -0.33,
     instructions: "",
     visibility: "private",
+    isPublic: true,
     sections: [
       { id: "section-1", name: "Section 1", setId: "", password: "", verified: false },
     ],
@@ -433,14 +489,14 @@ export const useMockTestCreationStore = create<MockTestCreationState>((set, get)
   }),
 
   initFromSet: (setData) => {
-    const sectionId = "section-1";
     set({
       name: `${setData.name} - MockTest`,
       sections: [
         {
-          id: sectionId,
+          id: "section-1",
           name: "Section 1",
-          setId: setData.contentId,
+          setId: setData.id,
+          setDbId: setData.id,
           password: setData.password,
           verified: true,
           setData: {
@@ -450,13 +506,8 @@ export const useMockTestCreationStore = create<MockTestCreationState>((set, get)
             questionCount: setData.questionCount,
             difficulty: { easy: 0, medium: setData.questionCount, hard: 0 },
             creator: {
-              id: "system",
-              name: "System",
-              email: "",
-              role: "System",
-              org: "System",
-              setsCreated: 0,
-              memberSince: ""
+              id: "system", name: "System", email: "", role: "System", org: "System",
+              setsCreated: 0, memberSince: ""
             }
           }
         }

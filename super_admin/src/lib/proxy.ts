@@ -8,7 +8,7 @@ const BACKEND = process.env.BACKEND_URL || 'http://localhost:4000/api';
  */
 function getToken(req: NextRequest): string {
     const cookieHeader = req.headers.get('cookie') || '';
-    const match = cookieHeader.match(/(?:^|;\s*)token=([^;]*)/);
+    const match = cookieHeader.match(/(?:^|;\s*)sb_token=([^;]*)/);
     return match ? match[1] : '';
 }
 

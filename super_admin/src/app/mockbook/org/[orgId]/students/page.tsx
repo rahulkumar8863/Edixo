@@ -126,7 +126,7 @@ const params = useParams();
     // Dynamic fetch: Load org & students from API
     const fetchOrgAndStudents = async () => {
       try {
-        const tokenMatch = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+        const tokenMatch = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
         const token = tokenMatch ? tokenMatch[1] : '';
         
         const [orgRes, studentsRes] = await Promise.all([

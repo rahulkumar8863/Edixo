@@ -67,7 +67,7 @@ function stripHtml(html?: string): string {
 
 function getToken(): string {
   if (typeof document === 'undefined') return '';
-  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  const match = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
   return match ? match[1] : '';
 }
 
@@ -117,7 +117,9 @@ function TypeBadge({ type }: { type: string }) {
   return <Badge className={styles[type] || ""}>{labels[type] || type}</Badge>;
 }
 
-export default function CreateSetPage() {
+import { Suspense } from "react";
+
+function CreateSetContent() {
   const { isOpen } = useSidebarStore();
   const router = useRouter();
   const {
@@ -992,5 +994,17 @@ export default function CreateSetPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function CreateSetPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#F4511E] border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <CreateSetContent />
+    </Suspense>
   );
 }

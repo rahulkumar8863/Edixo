@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { mockbookService, ExamFolder } from "@/services/mockbookService";
 import { toast } from "sonner";
+import { useOrg } from "@/providers/OrgProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const EMPTY_FORM = { name: "", description: "", icon: "📚", color: COLOR_OPTIO
 
 export default function CategoriesPage() {
   const { isOpen } = useSidebarStore();
+  const { selectedOrgId } = useOrg();
   const [categories, setCategories] = useState<ExamFolder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -54,12 +56,12 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [selectedOrgId]);
 
   const fetchCategories = async () => {
     setIsLoading(true);
     try {
-      const data = await mockbookService.getFolders();
+      const data = await mockbookService.getFolders(selectedOrgId || undefined);
       setCategories(data);
     } catch (error) {
       toast.error("Failed to load exam categories");
@@ -97,7 +99,8 @@ export default function CategoriesPage() {
         );
         toast.success("Category updated successfully");
       } else {
-        const res = await mockbookService.createFolder(form);
+        const payload = { ...form, orgId: selectedOrgId || "demo-org" };
+        const res = await mockbookService.createFolder(payload);
         const newCat = (res as any).data?.data || (res as any).data;
         setCategories(prev => [...prev, newCat]);
         toast.success("Category created successfully");

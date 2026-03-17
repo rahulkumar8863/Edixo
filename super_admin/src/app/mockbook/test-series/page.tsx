@@ -29,6 +29,7 @@ import { Sidebar } from "@/components/admin/Sidebar";
 import { TopBar } from "@/components/admin/TopBar";
 import { mockbookService, ExamSeries, ExamFolder } from "@/services/mockbookService";
 import { toast } from "sonner";
+import { useOrg } from "@/providers/OrgProvider";
 
 function StatusBadge({ status }: { status: string }) {
     const cfg: Record<string, { label: string; cls: string }> = {
@@ -46,6 +47,7 @@ type EditForm = {
 
 export default function TestSeriesPage() {
     const { isOpen } = useSidebarStore();
+    const { selectedOrgId } = useOrg();
     const [isLoading, setIsLoading] = useState(true);
     const [allSeries, setAllSeries] = useState<ExamSeries[]>([]);
     const [categories, setCategories] = useState<ExamFolder[]>([]);
@@ -72,8 +74,8 @@ export default function TestSeriesPage() {
     const loadData = async () => {
         try {
             const [seriesData, foldersData] = await Promise.all([
-                mockbookService.getSeries(),
-                mockbookService.getFolders()
+                mockbookService.getSeries(undefined, selectedOrgId || undefined),
+                mockbookService.getFolders(selectedOrgId || undefined)
             ]);
             setAllSeries(seriesData);
             setCategories(foldersData);
@@ -84,7 +86,7 @@ export default function TestSeriesPage() {
         }
     };
 
-    useEffect(() => { loadData(); }, []);
+    useEffect(() => { loadData(); }, [selectedOrgId]);
 
     const filtered = allSeries.filter(s => {
         const matchSearch = s.name.toLowerCase().includes(search.toLowerCase());
@@ -159,6 +161,7 @@ export default function TestSeriesPage() {
         setCreating(true);
         try {
             await mockbookService.createSeries({
+                orgId: selectedOrgId || "demo-org",
                 name: createForm.name,
                 description: createForm.description,
                 folderId: createForm.folderId,
@@ -166,7 +169,7 @@ export default function TestSeriesPage() {
                 isFree: createForm.isFree,
                 isFeatured: createForm.isFeatured,
                 isActive: createForm.isActive,
-            });
+            } as any);
             toast.success("Series created");
             setShowCreate(false);
             setCreateForm({ name: "", description: "", price: "0", isFree: true, isFeatured: false, isActive: true, folderId: "" });

@@ -217,12 +217,12 @@ export default function ExamPage() {
       });
 
       const attemptResult = res.data;
-      // Navigate to analytics with the real attempt ID
-      window.location.href = `/analytics?attemptId=${attemptResult?.id || ""}&testId=${testId}`;
+      // Navigate to results with the real attempt ID
+      window.location.href = `/tests/results/${attemptResult?.id || attemptResult?.attemptId || ""}`;
     } catch (err) {
       console.error("Submit failed:", err);
-      // Still navigate to analytics even on error
-      window.location.href = `/analytics?testId=${testId}`;
+      // Still navigate to results even on error
+      window.location.href = `/tests`;
     }
   }, [questions, qState, testId, submitting]);
 
@@ -354,9 +354,10 @@ export default function ExamPage() {
               {currentQ.imageUrl && (
                 <img src={currentQ.imageUrl} alt="question" className="mb-4 max-h-48 object-contain rounded border" />
               )}
-              <p className="text-[15px] font-medium text-black mb-8 leading-relaxed">
-                {currentQ.text}
-              </p>
+              <div 
+                className="text-[15px] font-medium text-black mb-8 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: currentQ.text || "" }}
+              />
 
               <div className="space-y-4">
                 {currentQ.options.map((opt, i) => {
@@ -380,7 +381,10 @@ export default function ExamPage() {
                           onChange={() => handleSelectOption(i, opt.id)}
                         />
                       </div>
-                      <span className="text-[14px] text-gray-800 font-medium">{opt.text}</span>
+                      <div 
+                        className="text-[14px] text-gray-800 font-medium"
+                        dangerouslySetInnerHTML={{ __html: opt.text || "" }}
+                      />
                     </label>
                   );
                 })}

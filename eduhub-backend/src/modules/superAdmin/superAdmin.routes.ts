@@ -85,6 +85,15 @@ router.get('/dashboard', async (_req, res, next) => {
                     value: p._count._all
                 })),
                 alerts: { trialExpiringSoon },
+                recentActivity: await prisma.platformAuditLog.findMany({
+                    take: 10,
+                    orderBy: { createdAt: 'desc' }
+                }),
+                revenueHistory: [
+                    { month: "Jan", mrr: mrr * 0.9 },
+                    { month: "Feb", mrr: mrr * 0.95 },
+                    { month: "Mar", mrr: mrr }
+                ] // Mocking history for now as we don't have historical snapshots yet
             },
         });
     } catch (err) { next(err); }
@@ -747,11 +756,168 @@ router.patch('/mockbook/:orgId/packs/:packId', async (req, res, next) => {
 
 router.delete('/mockbook/:orgId/packs/:packId', async (req, res, next) => {
     try {
+        await prisma.examCategory.delete({ where: { id: req.params.packId } });
+        res.json({ success: true, message: 'Pack deleted' });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /api/super-admin/audit-logs ─────────────────────────
+router.get('/audit-logs', async (req, res, next) => {
+    try {
+        const { page = 1, limit = 20, search, category } = req.query;
+        const skip = (Number(page) - 1) * Number(limit);
+
+        const where: any = {};
+        if (search) {
+            where.OR = [
+                { actorName: { contains: search as string, mode: 'insensitive' } },
+                { action: { contains: search as string, mode: 'insensitive' } },
+                { resource: { contains: search as string, mode: 'insensitive' } },
+            ];
+        }
+        if (category && category !== 'all') {
+            where.actorType = category;
+        }
+
+        const [logs, total] = await Promise.all([
+            prisma.platformAuditLog.findMany({
+                where,
+                skip,
+                take: Number(limit),
+                orderBy: { createdAt: 'desc' },
+            }),
+            prisma.platformAuditLog.count({ where }),
+        ]);
+
+        res.json({
+            success: true,
+            data: { logs, total, page: Number(page), pages: Math.ceil(total / Number(limit)) },
+        });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /api/super-admin/settings ──────────────────────────
+router.get('/settings', async (_req, res, next) => {
+    try {
+        const settings = await prisma.platformSetting.findMany();
+        const settingsMap = settings.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
+        res.json({ success: true, data: settingsMap });
+    } catch (err) { next(err); }
+});
+
+// ─── PATCH /api/super-admin/settings ────────────────────────
+router.patch('/settings', async (req, res, next) => {
+    try {
+        const updates = req.body; 
+        
+        await prisma.$transaction(
+            Object.entries(updates).map(([key, value]) => 
+                prisma.platformSetting.upsert({
+                    where: { key },
+                    update: { value: value as any },
+                    create: { key, value: value as any },
+                })
+            )
+        );
+
+        res.json({ success: true, message: 'Settings updated' });
+    } catch (err) { next(err); }
+});
+
+// ─── MockBook Stats (Super Admin) ───────────────────────────
+router.get('/mockbook/stats', async (_req, res, next) => {
+    try {
+        const [totalTests, totalAttempts, totalQuestions] = await Promise.all([
+            prisma.mockTest.count(),
+            prisma.testAttempt.count(),
+            prisma.question.count()
+        ]);
+        res.json({ success: true, data: { totalTests, totalAttempts, totalQuestions } });
+    } catch (err) { next(err); }
+});
+
+// ─── MockBook Folders (Super Admin) ──────────────────────────
+router.get('/mockbook/:orgId/folders', async (req, res, next) => {
+    try {
         const org = await prisma.organization.findFirst({ where: { orgId: req.params.orgId } });
         if (!org) throw new AppError('Organization not found', 404);
 
-        await prisma.examCategory.delete({ where: { id: req.params.packId } });
-        res.json({ success: true, message: 'Pack deleted' });
+        const folders = await prisma.examFolder.findMany({
+            where: { orgId: org.id },
+            include: { categories: { include: { subCategories: true } } },
+            orderBy: { sortOrder: 'asc' }
+        });
+
+        res.json({ success: true, data: folders });
+    } catch (err) { next(err); }
+});
+
+// ─── Whiteboard Settings (Super Admin) ──────────────────────
+router.get('/organizations/:orgId/whiteboard-settings', async (req, res, next) => {
+    try {
+        const org = await prisma.organization.findFirst({ where: { orgId: req.params.orgId } });
+        if (!org) throw new AppError('Organization not found', 404);
+
+        let settings = await prisma.whiteboardSettings.findUnique({ where: { orgId: org.id } });
+        if (!settings) {
+            settings = await prisma.whiteboardSettings.create({ data: { orgId: org.id } });
+        }
+        res.json({ success: true, data: settings });
+    } catch (err) { next(err); }
+});
+
+router.patch('/organizations/:orgId/whiteboard-settings', async (req, res, next) => {
+    try {
+        const org = await prisma.organization.findFirst({ where: { orgId: req.params.orgId } });
+        if (!org) throw new AppError('Organization not found', 404);
+
+        const schema = z.object({
+            aiAssistant: z.boolean().optional(),
+            periodicTable: z.boolean().optional(),
+            shapeBuilder3D: z.boolean().optional(),
+            attendance: z.boolean().optional(),
+            homeworkGenerator: z.boolean().optional(),
+            splitScreen: z.boolean().optional(),
+            mathTools: z.boolean().optional(),
+            chemistryTools: z.boolean().optional(),
+            physicsSimulations: z.boolean().optional(),
+            allowedGrades: z.array(z.number()).optional(),
+            globalAiTokenLimit: z.number().int().optional(),
+        });
+        const body = schema.parse(req.body);
+
+        const settings = await prisma.whiteboardSettings.upsert({
+            where: { orgId: org.id },
+            update: body,
+            create: { orgId: org.id, ...body },
+        });
+
+        res.json({ success: true, data: settings, message: 'Whiteboard settings updated' });
+    } catch (err) { next(err); }
+});
+
+// ─── Personalization Settings (Super Admin) ───────────────────
+router.patch('/organizations/:orgId/personalization', async (req, res, next) => {
+    try {
+        const org = await prisma.organization.findFirst({ where: { orgId: req.params.orgId } });
+        if (!org) throw new AppError('Organization not found', 404);
+
+        const schema = z.object({
+            isEnabled: z.boolean().optional(),
+            unlockThreshold: z.number().int().optional(),
+            aiMatchEnabled: z.boolean().optional(),
+            collabFilterEnabled: z.boolean().optional(),
+            studyPlanEnabled: z.boolean().optional(),
+        });
+        const body = schema.parse(req.body);
+
+        const settings = await prisma.orgPersonalizationSettings.upsert({
+            where: { orgId: org.id },
+            update: body,
+            create: { orgId: org.id, ...body },
+        });
+
+        res.json({ success: true, data: settings, message: 'Personalization settings updated' });
     } catch (err) { next(err); }
 });
 

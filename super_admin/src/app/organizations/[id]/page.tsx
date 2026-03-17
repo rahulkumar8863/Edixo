@@ -178,7 +178,7 @@ function OrganizationDetailInner() {
     try {
       const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}`, {
         headers: {
-          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+          'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}`
         }
       });
       const data = await res.json();
@@ -207,7 +207,7 @@ function OrganizationDetailInner() {
     try {
       const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/staff`, {
         headers: {
-          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+          'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}`
         }
       });
       const data = await res.json();
@@ -219,7 +219,7 @@ function OrganizationDetailInner() {
     try {
       const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/students`, {
         headers: {
-          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+          'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}`
         }
       });
       const data = await res.json();
@@ -231,7 +231,7 @@ function OrganizationDetailInner() {
     try {
       const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/audit`, {
         headers: {
-          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+          'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}`
         }
       });
       const data = await res.json();
@@ -258,7 +258,7 @@ function OrganizationDetailInner() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+          'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}`
         },
         body: JSON.stringify({ status: 'SUSPENDED' })
       });
@@ -280,7 +280,7 @@ function OrganizationDetailInner() {
     try {
       const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}` }
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}` }
       });
       const data = await res.json();
       if (data.success) { toast.success(`${orgData.name} deleted`); router.push('/organizations'); }
@@ -294,7 +294,7 @@ function OrganizationDetailInner() {
     try {
       const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}` },
         body: JSON.stringify({ status: 'ACTIVE' })
       });
       const data = await res.json();
@@ -309,7 +309,7 @@ function OrganizationDetailInner() {
     try {
       const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/plan`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}` },
         body: JSON.stringify({ plan: newPlan })
       });
       const data = await res.json();
@@ -324,7 +324,7 @@ function OrganizationDetailInner() {
     try {
       const res = await fetch(`http://localhost:4000/api/super-admin/organizations/${orgId}/extend-trial`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}` },
         body: JSON.stringify({ days: Number(trialDays) })
       });
       const data = await res.json();
@@ -341,7 +341,7 @@ function OrganizationDetailInner() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`
+          'Authorization': `Bearer ${document.cookie.split('sb_token=')[1]?.split(';')[0]}`
         },
         body: JSON.stringify(fields)
       });
@@ -1379,7 +1379,11 @@ function OrganizationDetailInner() {
 
 export default function OrganizationDetailPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#F4511E]" /></div>}>
+    <Suspense fallback={
+       <div className="flex h-screen items-center justify-center">
+         <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+       </div>
+    }>
       <OrganizationDetailInner />
     </Suspense>
   );

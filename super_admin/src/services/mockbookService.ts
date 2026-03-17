@@ -85,19 +85,22 @@ export interface AdminStudent {
 
 export const mockbookService = {
     // ─── Stats & Analytics ─────────────────────────────────────────
-    getStats: async (): Promise<MockBookStats> => {
-        const res = await api.get('/mockbook/analytics/stats');
+    getStats: async (orgId?: string): Promise<MockBookStats> => {
+        const path = orgId ? `/mockbook/analytics/stats?orgId=${orgId}` : '/mockbook/analytics/stats';
+        const res = await api.get(path);
         return res.data.data;
     },
 
-    getAnalytics: async (): Promise<any> => {
-        const res = await api.get('/mockbook/analytics/stats');
+    getAnalytics: async (orgId?: string): Promise<any> => {
+        const path = orgId ? `/mockbook/analytics/stats?orgId=${orgId}` : '/mockbook/analytics/stats';
+        const res = await api.get(path);
         return res.data.data;
     },
 
     // ─── Exam Folders (Top Category: SSC, Railway, etc.) ───────────
-    getFolders: async (): Promise<ExamFolder[]> => {
-        const res = await api.get('/mockbook/folders');
+    getFolders: async (orgId?: string): Promise<ExamFolder[]> => {
+        const path = orgId ? `/mockbook/folders?orgId=${orgId}` : '/mockbook/folders';
+        const res = await api.get(path);
         return res.data?.data || res.data || [];
     },
 
@@ -119,8 +122,11 @@ export const mockbookService = {
         return res.data;
     },
 
-    getSeries: async (folderId?: string): Promise<ExamSeries[]> => {
-        const path = folderId ? `/mockbook/categories?folderId=${folderId}` : '/mockbook/categories';
+    getSeries: async (folderId?: string, orgId?: string): Promise<ExamSeries[]> => {
+        const params = new URLSearchParams();
+        if (folderId) params.set('folderId', folderId);
+        if (orgId) params.set('orgId', orgId);
+        const path = `/mockbook/categories${params.toString() ? `?${params.toString()}` : ''}`;
         const res = await api.get(path);
         return res.data?.data || res.data || [];
     },
@@ -222,7 +228,8 @@ export const mockbookService = {
     // ─── Admin Students ─────────────────────────────────────────────
     getAdminStudents: async (filters?: { orgId?: string; search?: string }): Promise<AdminStudent[]> => {
         const params = new URLSearchParams();
-        if (filters?.orgId || ORG_ID) params.set('orgId', filters?.orgId || ORG_ID);
+        const orgId = filters?.orgId || ORG_ID;
+        if (orgId) params.set('orgId', orgId);
         if (filters?.search) params.set('search', filters.search);
         const res = await api.get(`/mockbook/admin/students?${params.toString()}`);
         return res.data?.data || [];
@@ -231,7 +238,8 @@ export const mockbookService = {
     // ─── Admin Live Tests ───────────────────────────────────────────
     getLiveAndScheduledTests: async (orgId?: string): Promise<{ live: MockTest[]; scheduled: MockTest[] }> => {
         const params = new URLSearchParams();
-        if (orgId || ORG_ID) params.set('orgId', orgId || ORG_ID);
+        const targetOrgId = orgId || ORG_ID;
+        if (targetOrgId) params.set('orgId', targetOrgId);
         const res = await api.get(`/mockbook/admin/live-tests?${params.toString()}`);
         return res.data?.data || { live: [], scheduled: [] };
     },

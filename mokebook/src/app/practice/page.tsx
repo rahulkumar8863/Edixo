@@ -65,7 +65,7 @@ export default function PracticePage() {
   // ── EXAM SELECTOR ────────────────────────────────────
   if (!selectedExam) {
     return (
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-white">
+      <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 to-white overflow-hidden">
         <Navbar />
         <div className="flex-1 flex overflow-hidden">
           <Sidebar />
@@ -158,7 +158,7 @@ export default function PracticePage() {
   const selectedExamData = examCategories.find(e => e.id === selectedExam);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />

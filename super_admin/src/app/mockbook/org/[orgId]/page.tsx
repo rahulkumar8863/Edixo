@@ -92,7 +92,7 @@ const params = useParams();
     // Dynamic fetch: Load org from API
     const fetchOrgDetails = async () => {
       try {
-        const tokenMatch = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+        const tokenMatch = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
         const token = tokenMatch ? tokenMatch[1] : '';
         
         const [orgRes, auditRes] = await Promise.all([

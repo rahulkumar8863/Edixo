@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
     // Simple check for the 'token' cookie
-    const token = request.cookies.get('token')?.value;
+    const token = request.cookies.get('sb_token')?.value;
     const isLoginPage = request.nextUrl.pathname === '/login';
     const isPublicAccess = request.nextUrl.pathname.startsWith('/access');
 

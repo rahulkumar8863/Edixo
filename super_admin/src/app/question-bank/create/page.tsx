@@ -60,7 +60,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 function getToken(): string {
   if (typeof document === 'undefined') return '';
-  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  const match = document.cookie.match(/(?:^|;\s*)sb_token=([^;]*)/);
   return match ? match[1] : '';
 }
 
@@ -178,7 +178,9 @@ function RichTextToolbar({
   );
 }
 
-export default function CreateQuestionPage() {
+import { Suspense } from "react";
+
+function CreateQuestionContent() {
   const { isOpen } = useSidebarStore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -878,5 +880,17 @@ export default function CreateQuestionPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function CreateQuestionPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#F4511E] border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <CreateQuestionContent />
+    </Suspense>
   );
 }
