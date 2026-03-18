@@ -12,8 +12,8 @@ router.use(authenticate, requireOrgAccess);
 router.get('/', async (req, res, next) => {
     try {
         const { page = 1, limit = 20, search, batchId, isActive } = req.query;
-        const orgId = req.user?.orgDbId || (req.params as any).orgId;
-        const org = await prisma.organization.findFirst({ where: { orgId: req.user?.orgId } });
+        const orgId = (req.user as any)?.orgDbId || (req.params as any).orgId;
+        const org = await prisma.organization.findFirst({ where: { orgId: (req.user as any)?.orgId } });
         if (!org) throw new AppError('Organization not found', 404);
 
         const skip = (Number(page) - 1) * Number(limit);
@@ -66,7 +66,7 @@ router.post('/', async (req, res, next) => {
         const body = schema.parse(req.body);
 
         const org = await prisma.organization.findFirstOrThrow({
-            where: { orgId: req.user!.orgId },
+            where: { orgId: (req.user as any)!.orgId },
         });
 
         // Check plan limits
@@ -135,7 +135,7 @@ router.get('/me', async (req, res, next) => {
         if (!req.user) throw new AppError('Unauthorized', 401);
         
         const student = await prisma.student.findFirst({
-            where: { userId: req.user.id },
+            where: { userId: (req.user as any).id },
             include: {
                 batchEnrollments: { include: { batch: true } },
             },
@@ -147,7 +147,7 @@ router.get('/me', async (req, res, next) => {
         // Currently assuming test purchases or enrollments are tracked somehow, 
         // passing empty for now until full store logic is built, or fetching user details.
         
-        res.json({ success: true, data: { ...student, email: req.user.email, mobile: req.user.mobile } });
+        res.json({ success: true, data: { ...student, email: (req.user as any).email, mobile: (req.user as any).mobile } });
     } catch (err) { next(err); }
 });
 
@@ -164,7 +164,7 @@ router.patch('/me', async (req, res, next) => {
         });
         const body = schema.parse(req.body);
 
-        const student = await prisma.student.findFirst({ where: { userId: req.user.id } });
+        const student = await prisma.student.findFirst({ where: { userId: (req.user as any).id } });
         if (!student) throw new AppError('Student profile not found', 404);
 
         const updated = await prisma.student.update({
@@ -179,7 +179,7 @@ router.patch('/me', async (req, res, next) => {
         // Also update User mobile if provided
         if (body.phone) {
             await prisma.user.update({
-                where: { id: req.user.id },
+                where: { id: (req.user as any).id },
                 data: { mobile: body.phone }
             });
         }

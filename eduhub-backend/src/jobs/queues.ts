@@ -5,12 +5,12 @@ import { logger } from '../config/logger';
 const connection = redis;
 
 // ─── Queue Definitions ───────────────────────────────────────
-export const pdfExtractQueue = new Queue('pdfExtract', { connection });
-export const masteryUpdateQueue = new Queue('masteryUpdate', { connection });
-export const folderCountQueue = new Queue('folderCount', { connection });
-export const notificationQueue = new Queue('notification', { connection });
-export const receiptQueue = new Queue('receipt', { connection });
-export const testScheduleQueue = new Queue('testSchedule', { connection });
+export const pdfExtractQueue = new Queue('pdfExtract', { connection: connection as any });
+export const masteryUpdateQueue = new Queue('masteryUpdate', { connection: connection as any });
+export const folderCountQueue = new Queue('folderCount', { connection: connection as any });
+export const notificationQueue = new Queue('notification', { connection: connection as any });
+export const receiptQueue = new Queue('receipt', { connection: connection as any });
+export const testScheduleQueue = new Queue('testSchedule', { connection: connection as any });
 
 // ─── Mastery Update Worker ───────────────────────────────────
 export const masteryUpdateWorker = new Worker(
@@ -71,7 +71,7 @@ export const masteryUpdateWorker = new Worker(
 
         logger.debug(`Mastery updated for student ${studentId}, question ${questionId}: ${masteryScore}`);
     },
-    { connection, concurrency: 10 }
+    { connection: connection as any, concurrency: 10 }
 );
 
 masteryUpdateWorker.on('failed', (job, err) => {
@@ -86,7 +86,7 @@ export const notificationWorker = new Worker(
         // TODO: integrate WhatsApp/SMS/Email services
         logger.info(`Processing notification ${notificationId}`);
     },
-    { connection }
+    { connection: connection as any }
 );
 
 logger.info('✅ BullMQ queues initialized');

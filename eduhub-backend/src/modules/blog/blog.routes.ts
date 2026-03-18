@@ -104,7 +104,7 @@ router.post('/posts', async (req: Request, res: Response, next: NextFunction) =>
 router.get('/posts/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const post = await prisma.blogPost.findFirst({
-            where: { OR: [{ id: req.params.id }, { slug: req.params.id }] },
+            where: { OR: [{ id: req.params.id as string }, { slug: req.params.id as string }] },
             include: {
                 author: { select: { id: true, name: true, slug: true, photoUrl: true, bio: true } },
                 categories: { include: { category: true } },
@@ -122,7 +122,7 @@ router.patch('/posts/:id', async (req: Request, res: Response, next: NextFunctio
     try {
         const { categoryIds, tagIds, ...data } = req.body;
         const post = await prisma.blogPost.update({
-            where: { id: req.params.id },
+            where: { id: req.params.id as string },
             data: {
                 ...data,
                 publishedAt: data.publishedAt ? new Date(data.publishedAt) : undefined,
@@ -147,7 +147,7 @@ router.patch('/posts/:id', async (req: Request, res: Response, next: NextFunctio
 // DELETE /api/blog/posts/:id
 router.delete('/posts/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await prisma.blogPost.delete({ where: { id: req.params.id } });
+        await prisma.blogPost.delete({ where: { id: req.params.id as string } });
         res.json({ success: true, message: 'Post deleted' });
     } catch (err) { next(err); }
 });
@@ -171,7 +171,7 @@ router.post('/authors', async (req: Request, res: Response, next: NextFunction) 
 router.get('/authors/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const author = await prisma.blogAuthor.findFirst({
-            where: { OR: [{ id: req.params.id }, { slug: req.params.id }] },
+            where: { OR: [{ id: req.params.id as string }, { slug: req.params.id as string }] },
         });
         if (!author) return res.status(404).json({ success: false, error: 'Author not found' });
         res.json({ success: true, author });
@@ -180,14 +180,14 @@ router.get('/authors/:id', async (req: Request, res: Response, next: NextFunctio
 
 router.patch('/authors/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const author = await prisma.blogAuthor.update({ where: { id: req.params.id }, data: req.body });
+        const author = await prisma.blogAuthor.update({ where: { id: req.params.id as string }, data: req.body });
         res.json({ success: true, author });
     } catch (err) { next(err); }
 });
 
 router.delete('/authors/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await prisma.blogAuthor.update({ where: { id: req.params.id }, data: { isActive: false } });
+        await prisma.blogAuthor.update({ where: { id: req.params.id as string }, data: { isActive: false } });
         res.json({ success: true, message: 'Author deactivated' });
     } catch (err) { next(err); }
 });
@@ -211,7 +211,7 @@ router.post('/categories', async (req: Request, res: Response, next: NextFunctio
 router.get('/categories/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const category = await prisma.blogCategory.findFirst({
-            where: { OR: [{ id: req.params.id }, { slug: req.params.id }] },
+            where: { OR: [{ id: req.params.id as string }, { slug: req.params.id as string }] },
         });
         if (!category) return res.status(404).json({ success: false, error: 'Category not found' });
         res.json({ success: true, category });
@@ -220,14 +220,14 @@ router.get('/categories/:id', async (req: Request, res: Response, next: NextFunc
 
 router.patch('/categories/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const category = await prisma.blogCategory.update({ where: { id: req.params.id }, data: req.body });
+        const category = await prisma.blogCategory.update({ where: { id: req.params.id as string }, data: req.body });
         res.json({ success: true, category });
     } catch (err) { next(err); }
 });
 
 router.delete('/categories/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await prisma.blogCategory.delete({ where: { id: req.params.id } });
+        await prisma.blogCategory.delete({ where: { id: req.params.id as string } });
         res.json({ success: true, message: 'Category deleted' });
     } catch (err) { next(err); }
 });
@@ -251,7 +251,7 @@ router.post('/tags', async (req: Request, res: Response, next: NextFunction) => 
 router.get('/tags/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const tag = await prisma.blogTag.findFirst({
-            where: { OR: [{ id: req.params.id }, { slug: req.params.id }] },
+            where: { OR: [{ id: req.params.id as string }, { slug: req.params.id as string }] },
         });
         if (!tag) return res.status(404).json({ success: false, error: 'Tag not found' });
         res.json({ success: true, tag });
@@ -260,14 +260,14 @@ router.get('/tags/:id', async (req: Request, res: Response, next: NextFunction) 
 
 router.patch('/tags/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tag = await prisma.blogTag.update({ where: { id: req.params.id }, data: req.body });
+        const tag = await prisma.blogTag.update({ where: { id: req.params.id as string }, data: req.body });
         res.json({ success: true, tag });
     } catch (err) { next(err); }
 });
 
 router.delete('/tags/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await prisma.blogTag.delete({ where: { id: req.params.id } });
+        await prisma.blogTag.delete({ where: { id: req.params.id as string } });
         res.json({ success: true, message: 'Tag deleted' });
     } catch (err) { next(err); }
 });
