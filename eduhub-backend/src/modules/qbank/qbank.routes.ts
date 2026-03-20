@@ -596,8 +596,8 @@ router.get('/dashboard', async (req, res, next) => {
 
         const recentUsage = recentHistory.map(h => ({
             id: h.id,
-            question: h.question.textEn || h.question.textHi || 'Untitled Question',
-            org: h.student.org.name,
+            question: h.question?.textEn || h.question?.textHi || 'Untitled Question',
+            org: h.student?.org?.name || 'Unknown Organization',
             teacher: 'System',
             date: h.lastAttemptAt?.toLocaleDateString('en-IN') || 'N/A',
             points: 1
@@ -643,7 +643,7 @@ router.get('/sets', async (req, res, next) => {
             questions: s._count.items,
             visibility: 'org_only',
             usedBy: 0,
-            created: s.createdAt.toLocaleDateString('en-IN')
+            created: s.createdAt?.toLocaleDateString('en-IN') || 'N/A'
         }));
 
         res.json({ success: true, data: { sets: formattedSets, total: sets.length } });
@@ -667,10 +667,10 @@ router.get('/usage-logs', async (req, res, next) => {
 
         const logs = history.map(h => ({
             id: h.id,
-            question: h.question.textEn || h.question.textHi || 'Untitled Question',
-            type: h.question.type.toLowerCase().includes('mcq') ? 'question' : 'set',
-            org: h.student.org.name,
-            user: h.student.name,
+            question: h.question?.textEn || h.question?.textHi || 'Untitled Question',
+            type: h.question?.type?.toLowerCase()?.includes('mcq') ? 'question' : 'set',
+            org: h.student?.org?.name || 'Unknown Organization',
+            user: h.student?.name || 'Unknown Student',
             points: 1,
             balanceAfter: 0,
             usedAt: h.lastAttemptAt?.toLocaleString('en-IN') || 'N/A'

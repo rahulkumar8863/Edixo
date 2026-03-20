@@ -138,7 +138,7 @@ export default function QuestionBankPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <Link href="/question-generation">
+                <Link href="/question-bank/ai-generate">
                   <Button variant="outline" className="btn-secondary">
                     <Sparkles className="w-4 h-4 mr-2" />
                     AI Generate
