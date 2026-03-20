@@ -58,10 +58,31 @@ router.post('/register', async (req, res, next) => {
             });
 
             if (body.role === 'STUDENT') {
-                if (!body.orgId) throw new AppError('Organization ID is required for student registration', 400);
+                let orgId = body.orgId;
+
+                // Auto-detect orgId from Origin header if missing
+                if (!orgId) {
+                    const origin = req.headers.origin;
+                    if (origin) {
+                        const domain = origin.replace(/^https?:\/\//, "").replace(/\/$/, "");
+                        const detectedOrg = await tx.organization.findFirst({
+                            where: {
+                                OR: [
+                                    { customDomain: domain },
+                                    { subdomain: domain },
+                                    { customDomain: origin },
+                                    { subdomain: origin }
+                                ]
+                            },
+                        });
+                        if (detectedOrg) orgId = detectedOrg.orgId;
+                    }
+                }
+
+                if (!orgId) throw new AppError('Organization ID is required for student registration', 400);
                 
                 const org = await tx.organization.findFirst({
-                    where: { orgId: body.orgId },
+                    where: { orgId },
                 });
                 if (!org) throw new AppError('Organization not found', 404);
 

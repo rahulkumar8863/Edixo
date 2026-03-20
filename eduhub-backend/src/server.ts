@@ -7,7 +7,7 @@ import { rateLimit } from 'express-rate-limit';
 
 import { env } from './config/env';
 import { logger } from './config/logger';
-import { connectRedis } from './config/redis';
+import { connectRedis, redis, safeRedisGet } from './config/redis';
 import { prisma } from './config/database';
 
 // Route imports
@@ -40,20 +40,62 @@ app.use(morgan('combined', {
     stream: { write: (message) => logger.http(message.trim()) }
 }));
 
-// CORS
-const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
+// CORS logic with DB-backed dynamic origins
+const staticOrigins = env.ALLOWED_ORIGINS.split(',')
+    .map(o => o.trim().replace(/\/$/, ""));
+
 app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-            callback(null, true);
-        } else {
-            logger.warn(`CORS blocked for origin: ${origin}. Add this to ALLOWED_ORIGINS in .env`);
+    origin: async (origin, callback) => {
+        // 1. Allow if no origin (server-to-server / tools) or in static list
+        if (!origin || staticOrigins.includes(origin) || staticOrigins.includes('*')) {
+            return callback(null, true);
+        }
+
+        // 2. Check Cache (Redis)
+        const cacheKey = `cors_allowed:${origin}`;
+        try {
+            const cached = await safeRedisGet(cacheKey);
+            if (cached === 'true') return callback(null, true);
+            if (cached === 'false') return callback(new Error(`CORS: ${origin} not allowed`));
+        } catch (err) {
+            logger.error('CORS Redis error:', err);
+        }
+
+        // 3. Check Database for Custom Domains or Subdomains
+        try {
+            // Trim protocol and slash for comparison if needed, but origins usually include protocol
+            const domain = origin.replace(/^https?:\/\//, "").replace(/\/$/, "");
+            
+            const org = await prisma.organization.findFirst({
+                where: {
+                    OR: [
+                        { customDomain: domain },
+                        { subdomain: domain },
+                        { customDomain: origin }, // Match with protocol
+                        { subdomain: origin }
+                    ]
+                },
+                select: { id: true }
+            });
+
+            if (org) {
+                // Allow and cache for 10 minutes
+                if (redis) await redis.setex(cacheKey, 600, 'true');
+                return callback(null, true);
+            }
+
+            // Deny and cache negative for 1 minute to prevent spamming DB
+            if (redis) await redis.setex(cacheKey, 60, 'false');
+            logger.warn(`CORS blocked for origin: ${origin}. Not found in ALLOWED_ORIGINS or DB.`);
             callback(new Error(`CORS: ${origin} not allowed`));
+        } catch (err) {
+            logger.error('CORS DB error:', err);
+            callback(null, false);
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-View-Id', 'X-Org-Id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-View-Id', 'X-Org-Id', 'X-Requested-With'],
 }));
 
 // Rate Limiter — general API
