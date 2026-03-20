@@ -28,6 +28,59 @@ function getAncestorIds(path: string): string[] {
     return path.split('/').filter(Boolean);
 }
 
+// ─── Helper: Get or Create Hierarchical Folders ────────────────
+async function getOrCreateExamFolder(orgId: string | null, examName: string, year: number | null): Promise<string> {
+    // 1. Check parent folder "Exams"
+    let examsFolder = await prisma.qBankFolder.findFirst({
+        where: { name: 'Exams', parentId: null, orgId, isActive: true }
+    });
+    if (!examsFolder) {
+        examsFolder = await prisma.qBankFolder.create({
+            data: { name: 'Exams', orgId, path: '/', depth: 0, scope: orgId ? 'ORG' : 'GLOBAL', slug: 'exams' }
+        });
+    }
+
+    // 2. Check Exam Name folder
+    let examFolder = await prisma.qBankFolder.findFirst({
+        where: { name: examName, parentId: examsFolder.id, orgId, isActive: true }
+    });
+    if (!examFolder) {
+        examFolder = await prisma.qBankFolder.create({
+            data: { 
+                name: examName, 
+                parentId: examsFolder.id, 
+                orgId, 
+                path: `/${examsFolder.id}`, 
+                depth: 1, 
+                scope: orgId ? 'ORG' : 'GLOBAL',
+                slug: examName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+            }
+        });
+    }
+
+    if (!year) return examFolder.id;
+
+    // 3. Check Year folder
+    let yearFolder = await prisma.qBankFolder.findFirst({
+        where: { name: String(year), parentId: examFolder.id, orgId, isActive: true }
+    });
+    if (!yearFolder) {
+        yearFolder = await prisma.qBankFolder.create({
+            data: { 
+                name: String(year), 
+                parentId: examFolder.id, 
+                orgId, 
+                path: `${examFolder.path}/${examFolder.id}`, 
+                depth: 2, 
+                scope: orgId ? 'ORG' : 'GLOBAL',
+                slug: String(year) 
+            }
+        });
+    }
+
+    return yearFolder.id;
+}
+
 // ─── GET /api/qbank/folders ──────────────────────────────────
 router.get('/folders', async (req, res, next) => {
     try {
@@ -1072,6 +1125,7 @@ router.post('/bulk-upload', async (req, res, next) => {
             fileName: z.string(),
             rows: z.array(z.any()),
             folderId: z.string().optional().nullable(),
+            createSet: z.boolean().optional().default(false),
         });
 
         const body = schema.parse(req.body);
@@ -1103,6 +1157,8 @@ router.post('/bulk-upload', async (req, res, next) => {
         let savedCount = 0;
         let failedCount = 0;
         const failedRows = [];
+        const savedQuestions: string[] = [];
+        const folderCache: Record<string, string> = {}; 
 
         for (let i = 0; i < body.rows.length; i++) {
             try {
@@ -1123,6 +1179,20 @@ router.post('/bulk-upload', async (req, res, next) => {
 
                 let qFolderId = body.folderId || null;
 
+                // ─── Smart Folder Logic ───
+                const rowExam = parsedRow.exam;
+                const rowYear = parsedRow.year ? Number(parsedRow.year) : null;
+
+                if (!qFolderId && rowExam) {
+                    const cacheKey = `${rowExam}-${rowYear}`;
+                    if (folderCache[cacheKey]) {
+                        qFolderId = folderCache[cacheKey];
+                    } else {
+                        qFolderId = await getOrCreateExamFolder(org.id, rowExam, rowYear);
+                        folderCache[cacheKey] = qFolderId;
+                    }
+                }
+
                 const options = [];
                 const optRows = [
                     { en: parsedRow.option1_eng, hi: parsedRow.option1_hin, val: '1', char: 'A' },
@@ -1140,7 +1210,7 @@ router.post('/bulk-upload', async (req, res, next) => {
                     }
                 }
 
-                await prisma.question.create({
+                const question = await prisma.question.create({
                     data: {
                         questionId,
                         orgId: org.id,
@@ -1171,6 +1241,7 @@ router.post('/bulk-upload', async (req, res, next) => {
                     },
                 });
                 savedCount++;
+                savedQuestions.push(question.id);
             } catch (err: any) {
                 console.error(`Row ${i + 1} failed to import:`, err);
                 failedCount++;
@@ -1195,6 +1266,26 @@ router.post('/bulk-upload', async (req, res, next) => {
             where: { id: batch.id },
             data: { totalQuestionsSaved: savedCount, totalFailedRows: failedCount, uploadStatus: 'Completed' },
         });
+
+        // ─── OPTIONAL: Create Set from Upload ───
+        if (body.createSet && savedQuestions.length > 0) {
+            const setId = String(Math.floor(100000 + Math.random() * 900000));
+            const pin = String(Math.floor(100000 + Math.random() * 900000));
+            
+            await prisma.questionSet.create({
+                data: {
+                    setId,
+                    pin,
+                    orgId: org.id,
+                    name: body.fileName.replace(/\.[^/.]+$/, ""), // Use filename as set name
+                    description: `Automatically created from upload: ${body.fileName}`,
+                    totalQuestions: savedQuestions.length,
+                    items: {
+                        create: savedQuestions.map((qId, idx) => ({ questionId: qId, sortOrder: idx })),
+                    },
+                },
+            });
+        }
 
         res.json({ success: true, data: { batchId, savedCount, failedCount } });
     } catch (err: any) {
@@ -1426,6 +1517,60 @@ router.post('/questions/:id/report', async (req, res, next) => {
         });
 
         res.status(201).json({ success: true, data: report });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /api/qbank/filter-options ──────────────────────────
+router.get('/filter-options', async (req, res, next) => {
+    try {
+        const orgId = req.user?.orgId;
+        const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+
+        const org = (orgId && orgId !== 'undefined') ? await prisma.organization.findFirst({ where: { orgId } }) : null;
+        const where: any = { deletedAt: null };
+        if (!isSuperAdmin) where.orgId = org?.id;
+
+        const [exams, subjects, years, sections] = await Promise.all([
+            prisma.question.findMany({ where, select: { exam: true }, distinct: ['exam'] }),
+            prisma.question.findMany({ where, select: { subjectName: true }, distinct: ['subjectName'] }),
+            prisma.question.findMany({ where, select: { year: true }, distinct: ['year'] }),
+            prisma.question.findMany({ where, select: { section: true }, distinct: ['section'] }),
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                exams: exams.map(e => e.exam).filter(Boolean).sort(),
+                subjects: subjects.map(s => s.subjectName).filter(Boolean).sort(),
+                years: years.map(y => y.year).filter(Boolean).sort((a, b) => (b || 0) - (a || 0)),
+                shifts: sections.map(s => s.section).filter(Boolean).sort(),
+            }
+        });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /api/qbank/chapters ────────────────────────────────
+router.get('/chapters', async (req, res, next) => {
+    try {
+        const { subject } = req.query;
+        const orgId = req.user?.orgId;
+        const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+
+        const org = (orgId && orgId !== 'undefined') ? await prisma.organization.findFirst({ where: { orgId } }) : null;
+        const where: any = { deletedAt: null };
+        if (!isSuperAdmin) where.orgId = org?.id;
+        if (subject) where.subjectName = subject as string;
+
+        const chapters = await prisma.question.findMany({
+            where,
+            select: { chapterName: true },
+            distinct: ['chapterName'],
+        });
+
+        res.json({
+            success: true,
+            data: chapters.map(c => c.chapterName).filter(Boolean).sort()
+        });
     } catch (err) { next(err); }
 });
 

@@ -36,6 +36,7 @@ import {
   TrendingUp,
   Search,
   Target,
+  MousePointer2,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +90,7 @@ const navigation: NavGroup[] = [
           { label: "Questions", href: "/question-bank/questions", icon: <FileText className="w-4 h-4" /> },
           { label: "Create Question", href: "/question-bank/create", icon: <PlusCircle className="w-4 h-4" /> },
           { label: "Question Sets", href: "/question-bank/sets", icon: <Layers className="w-4 h-4" /> },
+          { label: "Set Builder", href: "/question-bank/builder", icon: <MousePointer2 className="w-4 h-4" /> },
           { label: "Marketplace", href: "/question-bank/marketplace", icon: <Store className="w-4 h-4" /> },
           { label: "Question Generation", href: "/question-bank/ai-generate", icon: <Sparkles className="w-4 h-4" /> },
           { label: "Taxonomy", href: "/question-bank/taxonomy", icon: <Tags className="w-4 h-4" /> },

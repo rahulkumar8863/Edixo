@@ -256,6 +256,7 @@ export function QuestionsList() {
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [createSetFromImport, setCreateSetFromImport] = useState(true);
 
   const allSelected = selectedQuestions.length === questions.length;
   const someSelected = selectedQuestions.length > 0 && !allSelected;
@@ -374,7 +375,8 @@ export function QuestionsList() {
         body: JSON.stringify({
           fileName: importFile.name,
           rows: importRows,
-          folderId: folderId
+          folderId: folderId,
+          createSet: createSetFromImport
         })
       });
 
