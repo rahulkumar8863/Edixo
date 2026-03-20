@@ -44,9 +44,10 @@ app.use(morgan('combined', {
 const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
             callback(null, true);
         } else {
+            logger.warn(`CORS blocked for origin: ${origin}. Add this to ALLOWED_ORIGINS in .env`);
             callback(new Error(`CORS: ${origin} not allowed`));
         }
     },
