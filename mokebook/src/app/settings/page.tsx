@@ -140,7 +140,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#F0F2F8] overflow-hidden">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
@@ -279,7 +279,7 @@ export default function SettingsPage() {
                 {/* REFER */}
                 {activeTab === "refer" && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
-                    <Card className="bg-gradient-to-br from-primary to-accent text-white border-none shadow-lg overflow-hidden rounded-2xl">
+                    <Card className="bg-gradient-to-br from-[#1a73e8] to-[#0047cc] text-white border-none shadow-lg overflow-hidden rounded-xl">
                       <CardContent className="p-6 space-y-5">
                         <div className="flex items-center gap-2">
                           <Gift className="h-5 w-5" />

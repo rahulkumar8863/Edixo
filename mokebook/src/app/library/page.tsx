@@ -60,7 +60,7 @@ export default function LibraryPage() {
   const [search, setSearch] = useState("");
 
   return (
-    <div className="flex flex-col h-screen bg-[#f8fafc] overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#F0F2F8] overflow-hidden">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />

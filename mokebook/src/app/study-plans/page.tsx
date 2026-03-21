@@ -112,7 +112,7 @@ export default function StudyPlansPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#F0F2F8] overflow-hidden">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
@@ -166,9 +166,9 @@ export default function StudyPlansPage() {
                 <p className="text-sm font-semibold text-slate-500">Loading your study profile...</p>
               </div>
             ) : !generatedPlan ? (
-              <Card className="border-none shadow-sm bg-white rounded-3xl overflow-hidden">
+              <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
                 <CardContent className="p-0">
-                  <div className="h-2 bg-gradient-to-r from-primary via-accent to-orange-400" />
+                  <div className="h-1.5 bg-gradient-to-r from-[#1a73e8] to-blue-400" />
                   <div className="p-12 text-center space-y-6">
                     <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto shadow-sm">
                       <Bot className="h-10 w-10 text-primary" />
@@ -204,8 +204,8 @@ export default function StudyPlansPage() {
               </Card>
             ) : (
               <div className="space-y-4">
-                  <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
-                    <div className="h-1 bg-gradient-to-r from-primary to-accent" />
+                  <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden border border-slate-200">
+                    <div className="h-1 bg-gradient-to-r from-[#1a73e8] to-blue-400" />
                     <CardHeader className="p-4 pb-2">
                       <div className="flex items-start justify-between">
                         <div>

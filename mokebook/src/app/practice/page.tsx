@@ -65,7 +65,7 @@ export default function PracticePage() {
   // ── EXAM SELECTOR ────────────────────────────────────
   if (!selectedExam) {
     return (
-      <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 to-white overflow-hidden">
+      <div className="flex flex-col h-screen bg-[#F0F2F8] overflow-hidden">
         <Navbar />
         <div className="flex-1 flex overflow-hidden">
           <Sidebar />
@@ -158,7 +158,7 @@ export default function PracticePage() {
   const selectedExamData = examCategories.find(e => e.id === selectedExam);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#F0F2F8] overflow-hidden">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
@@ -218,7 +218,7 @@ export default function PracticePage() {
                           <Progress value={chap.mastery} className="h-1.5 bg-slate-100" />
                         </div>
                       </div>
-                      <Button className="w-full h-9 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold text-sm transition-colors" asChild>
+                      <Button className="w-full h-9 rounded-xl bg-[#1a73e8] hover:bg-blue-700 text-white font-bold text-sm transition-colors" asChild>
                         <Link href={`/practice/session/${chap.id}`}>Start Drill</Link>
                       </Button>
                     </CardContent>
@@ -243,7 +243,7 @@ export default function PracticePage() {
                       className={cn(
                         "flex-shrink-0 lg:w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left whitespace-nowrap",
                         activeSubject === sub.id
-                          ? "bg-primary text-white shadow-md shadow-primary/20"
+                          ? "bg-[#1a73e8] text-white shadow-md shadow-blue-500/20"
                           : "bg-white text-slate-500 hover:bg-slate-50 border border-slate-100"
                       )}
                     >

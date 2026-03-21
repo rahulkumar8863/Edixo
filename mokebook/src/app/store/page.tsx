@@ -57,11 +57,11 @@ export default function StorePage() {
   const [currentPoints] = useState(0); // Points will come from a wallet API endpoint when available
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8fafc]">
+    <div className="flex flex-col min-h-screen bg-[#F0F2F8]">
       <Navbar />
       <div className="flex-1 flex">
         <Sidebar />
-        <main className="flex-1 md:ml-48 p-3 md:p-4 space-y-4">
+        <main className="flex-1 p-3 md:p-5 space-y-4 overflow-y-auto pb-16 md:pb-0">
           <header className="flex flex-col md:flex-row md:items-end justify-between gap-3">
             <div className="space-y-0.5">
               <Badge variant="outline" className="border-primary text-primary font-bold text-[8px] h-3.5">STORE</Badge>

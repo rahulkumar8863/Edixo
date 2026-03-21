@@ -90,7 +90,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+      <div className="flex flex-col h-screen bg-[#F0F2F8] overflow-hidden">
         <Navbar />
         <div className="flex-1 flex overflow-hidden">
           <Sidebar />
@@ -106,7 +106,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#F0F2F8] overflow-hidden">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
@@ -121,8 +121,8 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Left: Avatar + Info */}
               <div className="lg:col-span-1 space-y-4">
-                <Card className="shadow-sm border-none bg-white rounded-2xl overflow-hidden">
-                  <div className="h-20 bg-gradient-to-r from-primary/20 via-orange-100 to-accent/10" />
+                <Card className="shadow-sm border border-slate-200 bg-white rounded-xl overflow-hidden">
+                  <div className="h-16 bg-gradient-to-r from-[#1a73e8]/20 via-blue-100 to-blue-50" />
                   <CardContent className="px-5 pb-5 -mt-10">
                     <div className="flex flex-col items-center text-center space-y-3">
                       <div className="ring-4 ring-white rounded-full shadow-lg">

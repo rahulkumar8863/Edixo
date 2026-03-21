@@ -43,7 +43,7 @@ export default function OverallAnalyticsPage() {
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#F0F2F8] overflow-hidden">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
@@ -128,9 +128,9 @@ export default function OverallAnalyticsPage() {
                     </CardContent>
                   </Card>
                   
-                  <Card className="border-none shadow-sm bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                  <Card className="border-none shadow-sm bg-blue-50/60 rounded-xl border border-blue-100">
                     <CardHeader className="p-4 pb-2">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2 text-indigo-700">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2 text-blue-700">
                         AI Recommendation
                       </CardTitle>
                     </CardHeader>
@@ -139,7 +139,7 @@ export default function OverallAnalyticsPage() {
                         Based on your last {analytics.totalTests} tests, your accuracy is {Math.round(analytics.averageAccuracy || 0)}%. Consider dedicating more time to unattempted questions and reviewing incorrect answers carefully before jumping to the next mock.
                       </p>
                       <div className="pt-2">
-                        <span className="inline-block bg-white text-indigo-600 px-3 py-1 rounded-full text-xs font-bold border border-indigo-100 shadow-sm cursor-pointer hover:bg-indigo-50 transition-colors">
+                        <span className="inline-block bg-white text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 shadow-sm cursor-pointer hover:bg-blue-50 transition-colors">
                           Suggested: Generate a 7-Day Revision Plan
                         </span>
                       </div>

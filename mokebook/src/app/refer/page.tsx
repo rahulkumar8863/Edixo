@@ -51,7 +51,7 @@ export default function ReferAndEarnPage() {
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-[#f8fafc]">
+    <div className="flex flex-col h-screen bg-[#F0F2F8]">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
@@ -64,7 +64,7 @@ export default function ReferAndEarnPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
-                <Card className="bg-gradient-to-br from-primary to-accent text-white border-none shadow-xl overflow-hidden relative">
+                <Card className="bg-gradient-to-br from-[#1a73e8] to-[#0047cc] text-white border-none shadow-xl overflow-hidden relative">
                   <CardContent className="p-6 space-y-4 relative z-10">
                     <div className="flex items-center gap-2">
                       <div className="p-1.5 bg-white/20 rounded-xl backdrop-blur-sm">

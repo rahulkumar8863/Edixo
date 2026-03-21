@@ -96,7 +96,7 @@ export default function SeriesDetailPage() {
   const totalTests = allTests.length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
+    <div className="flex flex-col min-h-screen bg-[#F0F2F8]">
       <Navbar />
       <div className="flex-1 flex overflow-hidden w-full max-w-full">
         <Sidebar />
@@ -131,7 +131,7 @@ export default function SeriesDetailPage() {
             <>
               {/* Premium Header */}
               <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-orange-500 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#1a73e8] to-blue-400 rounded-[2.5rem] blur opacity-8 group-hover:opacity-15 transition duration-1000"></div>
                 <header className="relative bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
                     <div className="space-y-4">
@@ -162,8 +162,8 @@ export default function SeriesDetailPage() {
 
                       <div className="flex flex-wrap items-center gap-6 pt-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
-                            <Zap className="h-4 w-4 fill-orange-600" />
+                          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#1a73e8]">
+                            <Zap className="h-4 w-4 fill-[#1a73e8]" />
                           </div>
                           <span className="text-sm font-bold text-slate-700">{totalTests} Tests</span>
                         </div>

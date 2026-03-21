@@ -101,7 +101,7 @@ export default function TestInstructionsPage() {
         {/* Profile Sidebar */}
         <aside className="w-full md:w-[280px] bg-white border-b md:border-r md:border-b-0 flex flex-row md:flex-col items-center gap-6 md:gap-0 p-6 md:p-10 shrink-0 z-10">
           <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary to-orange-500 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+            <div className="absolute -inset-1 bg-gradient-to-r from-[#1a73e8] to-blue-400 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
             <Avatar className="h-16 w-16 md:h-32 md:w-32 rounded-full border-4 border-white shadow-2xl overflow-hidden relative z-10">
               <AvatarFallback className="text-2xl md:text-5xl font-black bg-slate-100 text-slate-400 w-full h-full flex items-center justify-center">
                 {displayName.charAt(0)}
@@ -150,12 +150,12 @@ export default function TestInstructionsPage() {
                 <div className="grid gap-6">
                    <Card className="rounded-3xl border-slate-100 shadow-sm p-6 md:p-8 space-y-6">
                       <div className="flex items-start gap-4">
-                         <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm shrink-0">1</div>
+                         <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1a73e8] flex items-center justify-center font-bold text-sm shrink-0">1</div>
                          <p className="text-sm font-medium text-slate-600 leading-relaxed pt-1">The clock will be set at the server. The countdown timer at the top right corner of screen will display the remaining time available for you to complete the examination.</p>
                       </div>
 
                       <div className="flex items-start gap-4">
-                         <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm shrink-0">2</div>
+                         <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1a73e8] flex items-center justify-center font-bold text-sm shrink-0">2</div>
                          <div className="space-y-4 pt-1">
                             <p className="text-sm font-medium text-slate-600 leading-relaxed">The Question Palette displayed on the right side of screen will show the status of each question using the following symbols:</p>
                             
@@ -181,7 +181,7 @@ export default function TestInstructionsPage() {
                       </div>
 
                       <div className="flex items-start gap-4">
-                         <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm shrink-0">3</div>
+                         <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1a73e8] flex items-center justify-center font-bold text-sm shrink-0">3</div>
                          <p className="text-sm font-medium text-slate-600 leading-relaxed pt-1">You can click on the question number in the palette to go directly to that question. Click on "Save & Next" to save your answer for the current question.</p>
                       </div>
                    </Card>
