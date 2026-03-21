@@ -5,19 +5,17 @@ import Image from "next/image";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight, Bot, BarChart3, BookOpen,
   Trophy, Flame, TrendingUp, Clock,
-  Users, Sparkles, ChevronRight, Play, Layers, PenLine,
-  Cpu, Quote, CheckCircle2, Star, Zap
+  Users, Sparkles, ChevronRight, Play,
+  CheckCircle2, Star, Zap, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/firebase";
 import { useOrganization } from "@/providers/OrganizationProvider";
 
-/* ═══ COUNTUP HOOK ═══════════════════════════ */
 function useCountUp(target: number, duration = 2000, active = false) {
   const [val, setVal] = useState(0);
   useEffect(() => {
@@ -34,7 +32,6 @@ function useCountUp(target: number, duration = 2000, active = false) {
   return val;
 }
 
-/* ═══ TYPED TEXT HOOK ════════════════════════ */
 function useTyped(words: string[], speed = 80, pause = 1800) {
   const [text, setText] = useState("");
   const [wordIdx, setWordIdx] = useState(0);
@@ -84,75 +81,85 @@ export default function Home() {
 
   const typedWord = useTyped(["SSC CGL", "JEE Mains", "NEET", "UPSC", "Railway", "Banking"], 90, 1600);
 
-  const [activeT, setActiveT] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setActiveT(p => (p + 1) % 3), 4000);
-    return () => clearInterval(t);
-  }, []);
-
-  const heroRef = useRef<HTMLDivElement>(null);
-  const [parallax, setParallax] = useState({ x: 0, y: 0 });
-  const handleMouse = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    setParallax({ x: (e.clientX - r.width / 2) / 30, y: (e.clientY - r.height / 2) / 30 });
-  }, []);
-
   if (!mounted || orgLoading || (user && !isUserLoading)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm font-medium text-slate-500 animate-pulse">Loading experience...</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: "#1a73e8 transparent #1a73e8 #1a73e8" }} />
+          <p className="text-sm font-semibold text-slate-400">Loading...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-white selection:bg-primary/10 selection:text-primary overflow-x-hidden">
-      <Navbar />
-      
-      <main className="relative overflow-hidden pt-20 pb-32">
-        {/* Abstract Background Elements */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full -z-10 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-blue-500/5 rounded-full blur-[100px]" />
-        </div>
+  const features = [
+    { title: "AI Study Planner", desc: "Dynamic roadmap based on your strengths and weaknesses.", icon: Bot, iconBg: "#eff6ff", iconColor: "#1a73e8", badge: "AI" },
+    { title: "Real-time Analytics", desc: "Granular subject-wise insights with percentile & rank.", icon: BarChart3, iconBg: "#f0fdf4", iconColor: "#16a34a", badge: null },
+    { title: "Premium Mock Tests", desc: "High-quality mocks crafted by top exam experts.", icon: BookOpen, iconBg: "#fff7ed", iconColor: "#ea580c", badge: "1200+" },
+  ];
 
-        <div className="max-w-7xl mx-auto px-6 md:px-8">
-          {/* Hero Section */}
-          <div className="flex flex-col items-center text-center max-w-4xl mx-auto space-y-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold tracking-wide uppercase animate-fade-in">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+  return (
+    <div className="min-h-screen bg-white overflow-x-hidden">
+      <Navbar />
+
+      {/* ── HERO ── */}
+      <section className="relative overflow-hidden" style={{ background: "linear-gradient(160deg, #f0f7ff 0%, #e8f0fe 50%, #fff 100%)" }}>
+        {/* Subtle grid pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%231a73e8' fill-opacity='1'%3E%3Crect x='0' y='0' width='1' height='1'/%3E%3C/g%3E%3C/svg%3E\")", backgroundSize: "40px 40px" }}
+        />
+
+        <div className="max-w-6xl mx-auto px-4 md:px-8 pt-14 pb-20 md:pt-20 md:pb-28">
+          <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
+
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold tracking-wide mb-6">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
               </span>
               Next-Gen Mock Test Platform
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 leading-[1.05]">
-              Crack <span className="text-primary italic">{typedWord || "\u00a0"}</span> <br />
-              with <span className="text-primary">AI Precision.</span>
+            {/* Headline */}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1] mb-5">
+              Crack{" "}
+              <span
+                className="relative inline-block"
+                style={{ color: "#1a73e8" }}
+              >
+                {typedWord || "\u00a0"}
+                <span className="inline-block w-0.5 h-[0.8em] align-middle ml-0.5 bg-blue-500 animate-pulse" />
+              </span>
+              <br />
+              with <span style={{ color: "#1a73e8" }}>AI Precision.</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-slate-500 max-w-2xl font-medium leading-relaxed">
-              Personalized study plans, real-time analytics, and thousands of premium mock tests tailored for your success.
+            <p className="text-base md:text-lg text-slate-500 max-w-xl leading-relaxed mb-8 font-medium">
+              Personalized study plans, real-time analytics, and thousands of premium mock tests tailored to your success.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-              <Button size="lg" className="h-16 px-10 rounded-2xl text-lg font-bold bg-primary shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 transition-all group" asChild>
-                <Link href="/login" className="flex items-center gap-3">
-                  Start Practicing Free
-                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" className="h-16 px-10 rounded-2xl text-lg font-bold border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all" asChild>
-                <Link href="/tests">Explore Courses</Link>
-              </Button>
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Link
+                href="/login"
+                className="flex items-center gap-2 h-12 px-8 rounded-lg text-white font-bold text-sm transition-all hover:opacity-90 active:scale-95"
+                style={{ background: "linear-gradient(135deg, #1a73e8, #0057d9)", boxShadow: "0 4px 14px rgba(26,115,232,0.35)" }}
+              >
+                Start Practicing Free
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/tests"
+                className="flex items-center gap-2 h-12 px-8 rounded-lg font-bold text-sm border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 bg-white"
+              >
+                Explore Courses
+              </Link>
             </div>
 
-            {/* Social Proof / Stats */}
-            <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-16 w-full max-w-3xl">
+            {/* Stats row */}
+            <div ref={statsRef} className="grid grid-cols-2 sm:grid-cols-4 gap-5 mt-14 w-full max-w-2xl">
               {[
                 { label: "Active Students", value: students >= 50000 ? "50K+" : `${students.toLocaleString()}+` },
                 { label: "Mock Tests", value: mocks >= 12000 ? "12K+" : `${mocks.toLocaleString()}+` },
@@ -160,81 +167,121 @@ export default function Home() {
                 { label: "AI Study Plans", value: "25K+" }
               ].map((stat) => (
                 <div key={stat.label} className="flex flex-col items-center">
-                  <span className="text-3xl font-black text-slate-900">{stat.value}</span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{stat.label}</span>
+                  <span className="text-2xl font-black text-slate-900">{stat.value}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">{stat.label}</span>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Feature Cards Redesign */}
-          <div className="grid md:grid-cols-3 gap-8 mt-40">
-            {[
-              {
-                title: "AI Study Planner",
-                desc: "Get a dynamic roadmap based on your strengths and weaknesses.",
-                icon: Bot,
-                color: "bg-purple-50 text-purple-600",
-                shadow: "hover:shadow-purple-500/10"
-              },
-              {
-                title: "Real-time Analytics",
-                desc: "Deep dive into your performance with granular subject-wise insights.",
-                icon: BarChart3,
-                color: "bg-blue-50 text-blue-600",
-                shadow: "hover:shadow-blue-500/10"
-              },
-              {
-                title: "Premium Content",
-                desc: "Access high-quality mock tests created by top exam experts.",
-                icon: BookOpen,
-                color: "bg-orange-50 text-orange-600",
-                shadow: "hover:shadow-orange-500/10"
-              }
-            ].map((feature) => (
-              <div 
-                key={feature.title} 
-                className={cn(
-                  "p-10 rounded-[32px] bg-white border border-slate-100 transition-all duration-500 hover:-translate-y-2 group shadow-sm",
-                  feature.shadow
-                )}
+      {/* ── FEATURES ── */}
+      <section className="py-14 md:py-20 px-4 md:px-8 max-w-6xl mx-auto">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-3">Everything you need to crack your exam</h2>
+          <p className="text-slate-500 text-sm font-medium max-w-lg mx-auto">Powerful tools built specifically for competitive exam preparation.</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-5">
+          {features.map((f) => (
+            <div
+              key={f.title}
+              className="group p-6 rounded-xl bg-white border border-slate-100 hover:border-blue-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
+            >
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110"
+                style={{ background: f.iconBg }}
               >
-                <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mb-8 transition-transform group-hover:scale-110", feature.color)}>
-                  <feature.icon className="h-8 w-8" />
+                <f.icon className="h-6 w-6" style={{ color: f.iconColor }} />
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-base font-black text-slate-900">{f.title}</h3>
+                {f.badge && (
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: "#1a73e8" }}>{f.badge}</span>
+                )}
+              </div>
+              <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── WHY CHOOSE US ── */}
+      <section className="py-14 md:py-20 px-4 md:px-8" style={{ background: "#F0F2F8" }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-3">Why students trust us</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { icon: CheckCircle2, label: "Exam Pattern Mocks", color: "#1a73e8" },
+              { icon: BarChart3, label: "Deep Analytics", color: "#16a34a" },
+              { icon: Bot, label: "AI Study Plans", color: "#7c3aed" },
+              { icon: Shield, label: "1M+ Students", color: "#ea580c" },
+            ].map(item => (
+              <div key={item.label} className="bg-white rounded-xl p-5 flex flex-col items-center text-center gap-3 border border-slate-100"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: item.color + "14" }}>
+                  <item.icon className="h-5 w-5" style={{ color: item.color }} />
                 </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-4">{feature.title}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed">{feature.desc}</p>
+                <span className="text-sm font-bold text-slate-800">{item.label}</span>
               </div>
             ))}
           </div>
         </div>
-      </main>
+      </section>
 
-      {/* Modern Footer */}
-      <footer className="border-t py-20 bg-slate-50/50">
-        <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-10">
-          <div className="flex items-center gap-3">
+      {/* ── CTA STRIP ── */}
+      <section className="py-14 md:py-20 px-4 md:px-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <div
+            className="rounded-2xl p-10 md:p-14 text-white relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #1a73e8, #0047cc)" }}
+          >
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+            <h2 className="text-2xl md:text-3xl font-black mb-3 relative">Start your free preparation today</h2>
+            <p className="text-blue-100 text-sm font-medium mb-7 relative max-w-md mx-auto">
+              Join 50,000+ students who are already cracking competitive exams with us.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 h-12 px-8 rounded-lg font-bold text-sm bg-white hover:bg-blue-50 transition-all"
+              style={{ color: "#1a73e8" }}
+            >
+              Get Started Free <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className="border-t border-slate-100 py-10 bg-white">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2.5">
             {org?.logoUrl ? (
-              <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-sm">
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden">
                 <Image src={org.logoUrl} alt={org.name} fill className="object-cover" />
               </div>
             ) : (
-              <span className="bg-primary text-white p-2 rounded-xl text-xs font-black w-10 h-10 flex items-center justify-center shadow-lg shadow-primary/20">
+              <span
+                className="text-white p-1.5 rounded-lg text-xs font-black w-8 h-8 flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, #1a73e8, #0057d9)" }}
+              >
                 {org?.name?.charAt(0) || "M"}
               </span>
             )}
-            <span className="text-2xl font-black tracking-tight text-slate-900">{org?.name || "Mockbook"}</span>
-          </div>
-          
-          <div className="flex gap-8 text-sm font-bold text-slate-500 uppercase tracking-widest">
-            <Link href="#" className="hover:text-primary transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Contact</Link>
+            <span className="text-base font-bold text-slate-900">{org?.name || "Mockbook"}</span>
           </div>
 
-          <p className="text-sm font-medium text-slate-400">
-            © 2026 {org?.name || "Mockbook"}. All rights reserved.
-          </p>
+          <div className="flex gap-6 text-sm font-semibold text-slate-500">
+            <Link href="#" className="hover:text-blue-600 transition-colors">Privacy</Link>
+            <Link href="#" className="hover:text-blue-600 transition-colors">Terms</Link>
+            <Link href="#" className="hover:text-blue-600 transition-colors">Contact</Link>
+          </div>
+
+          <p className="text-sm text-slate-400">© 2026 {org?.name || "Mockbook"}. All rights reserved.</p>
         </div>
       </footer>
     </div>

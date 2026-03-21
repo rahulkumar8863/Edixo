@@ -13,27 +13,37 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 22 90% 50%;
+    /* Testbook Blue */
+    --primary: 214 89% 52%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --secondary: 214 30% 95%;
+    --secondary-foreground: 214 47% 20%;
+    --muted: 214 30% 95%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 30% 95%;
+    --accent-foreground: 214 47% 20%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 22 90% 50%;
-    --radius: 1rem;
+    --border: 214 31% 91%;
+    --input: 214 31% 91%;
+    --ring: 214 89% 52%;
+    --radius: 0.75rem;
+    
+    /* Testbook palette */
+    --tb-navy: #0f1b2d;
+    --tb-navy-2: #1a2a40;
+    --tb-blue: #1a73e8;
+    --tb-blue-light: #4a94f8;
+    --tb-surface: #F0F2F8;
+    --tb-card: #ffffff;
+    --tb-border: #e2e8f0;
     
     /* Premium Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+    --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
     --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.2);
   }
   
   .dark {
@@ -43,7 +53,7 @@
     --card-foreground: 210 20% 98%;
     --popover: 222 47% 11%;
     --popover-foreground: 210 20% 98%;
-    --primary: 22 90% 65%;
+    --primary: 214 89% 65%;
     --primary-foreground: 0 0% 0%;
     --secondary: 215 27% 26%;
     --secondary-foreground: 210 20% 98%;
@@ -55,7 +65,7 @@
     --destructive-foreground: 210 20% 98%;
     --border: 215 27% 26%;
     --input: 215 27% 26%;
-    --ring: 22 90% 65%;
+    --ring: 214 89% 65%;
   }
 }
 
