@@ -9,7 +9,22 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const GROUPS = [
+import { LucideIcon } from "lucide-react";
+
+type NavItem = {
+  icon: LucideIcon;
+  label: string;
+  href: string;
+  badge?: string;
+  badgeColor?: string;
+};
+
+type NavGroup = {
+  label: string | null;
+  items: NavItem[];
+};
+
+const GROUPS: NavGroup[] = [
   {
     label: null,
     items: [
@@ -49,7 +64,7 @@ const MOBILE_TABS = [
   { icon: User,          label: "Profile", href: "/profile" },
 ];
 
-function isActive(href, pathname) {
+function isActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";
   return pathname === href.split("?")[0] || pathname.startsWith(href.split("?")[0] + "/");
 }
