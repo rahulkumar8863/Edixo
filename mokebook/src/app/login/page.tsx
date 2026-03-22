@@ -297,7 +297,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <div className={cn("transition-all duration-500 max-w-sm w-full mx-auto space-y-7", mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4")}>
+          <div className={cn("transition-all duration-500 max-w-sm w-full mx-auto space-y-5", mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4")}>
 
             {/* Header */}
             <div className="space-y-2 text-center">
@@ -335,7 +335,7 @@ export default function LoginPage() {
                     <Input
                       id="name"
                       placeholder="Your full name"
-                      className="pl-10 h-12 text-sm rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary focus-visible:bg-white transition-all"
+                      className="pl-10 h-10 text-sm rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary focus-visible:bg-white transition-all"
                       value={name}
                       onChange={e => setName(e.target.value)}
                     />
@@ -348,15 +348,15 @@ export default function LoginPage() {
                 <Label htmlFor="email" className="text-xs font-bold uppercase text-slate-400 tracking-wide">Student ID or Email</Label>
                 <div className="relative group">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
-                  <Input
-                    id="email"
-                    type="text"
-                    placeholder="Enter Student ID or Email"
-                    required
-                    className="pl-10 h-12 text-sm rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary focus-visible:bg-white transition-all"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                  />
+                    <Input
+                      id="email"
+                      type="text"
+                      placeholder="Enter Student ID or Email"
+                      required
+                      className="pl-10 h-10 text-sm rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary focus-visible:bg-white transition-all"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                    />
                 </div>
               </div>
 
@@ -365,15 +365,15 @@ export default function LoginPage() {
                 <Label htmlFor="password" className="text-xs font-bold uppercase text-slate-400 tracking-wide">Password</Label>
                 <div className="relative group">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder={isLogin ? "••••••••" : "Min. 6 characters"}
-                    required
-                    className="pl-10 pr-12 h-12 text-sm rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary focus-visible:bg-white transition-all"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder={isLogin ? "••••••••" : "Min. 6 characters"}
+                      required
+                      className="pl-10 pr-12 h-10 text-sm rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary focus-visible:bg-white transition-all"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                    />
                   <button
                     type="button"
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors"
@@ -394,7 +394,7 @@ export default function LoginPage() {
                 type="submit"
                 disabled={loading}
                 className={cn(
-                  "btn-glow w-full h-12 rounded-xl font-bold text-sm shadow-lg transition-all hover:-translate-y-0.5 relative overflow-hidden",
+                  "btn-glow w-full h-10 rounded-xl font-bold text-sm shadow-lg transition-all hover:-translate-y-0.5 relative overflow-hidden",
                   isLogin
                     ? "bg-slate-900 hover:bg-slate-800 shadow-slate-900/20 text-white"
                     : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/20 text-white"

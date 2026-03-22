@@ -104,17 +104,16 @@ export default function Home() {
 
       {/* ── HERO ── */}
       <section className="relative overflow-hidden" style={{ background: "linear-gradient(160deg, #f0f7ff 0%, #e8f0fe 50%, #fff 100%)" }}>
-        {/* Subtle grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
           style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%231a73e8' fill-opacity='1'%3E%3Crect x='0' y='0' width='1' height='1'/%3E%3C/g%3E%3C/svg%3E\")", backgroundSize: "40px 40px" }}
         />
 
-        <div className="max-w-6xl mx-auto px-4 md:px-8 pt-14 pb-20 md:pt-20 md:pb-28">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 pt-8 pb-12 md:pt-12 md:pb-16">
           <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
 
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold tracking-wide mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold tracking-wide mb-4">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
@@ -123,12 +122,9 @@ export default function Home() {
             </div>
 
             {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1] mb-5">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900 leading-[1.1] mb-4">
               Crack{" "}
-              <span
-                className="relative inline-block"
-                style={{ color: "#1a73e8" }}
-              >
+              <span className="relative inline-block" style={{ color: "#1a73e8" }}>
                 {typedWord || "\u00a0"}
                 <span className="inline-block w-0.5 h-[0.8em] align-middle ml-0.5 bg-blue-500 animate-pulse" />
               </span>
@@ -136,7 +132,7 @@ export default function Home() {
               with <span style={{ color: "#1a73e8" }}>AI Precision.</span>
             </h1>
 
-            <p className="text-base md:text-lg text-slate-500 max-w-xl leading-relaxed mb-8 font-medium">
+            <p className="text-sm md:text-base text-slate-500 max-w-xl leading-relaxed mb-6 font-medium">
               Personalized study plans, real-time analytics, and thousands of premium mock tests tailored to your success.
             </p>
 
@@ -144,7 +140,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <Link
                 href="/login"
-                className="flex items-center gap-2 h-12 px-8 rounded-lg text-white font-bold text-sm transition-all hover:opacity-90 active:scale-95"
+                className="flex items-center gap-2 h-10 px-7 rounded-lg text-white font-bold text-sm transition-all hover:opacity-90 active:scale-95"
                 style={{ background: "linear-gradient(135deg, #1a73e8, #0057d9)", boxShadow: "0 4px 14px rgba(26,115,232,0.35)" }}
               >
                 Start Practicing Free
@@ -152,14 +148,14 @@ export default function Home() {
               </Link>
               <Link
                 href="/tests"
-                className="flex items-center gap-2 h-12 px-8 rounded-lg font-bold text-sm border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 bg-white"
+                className="flex items-center gap-2 h-10 px-7 rounded-lg font-bold text-sm border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 bg-white"
               >
                 Explore Courses
               </Link>
             </div>
 
             {/* Stats row */}
-            <div ref={statsRef} className="grid grid-cols-2 sm:grid-cols-4 gap-5 mt-14 w-full max-w-2xl">
+            <div ref={statsRef} className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-10 w-full max-w-2xl">
               {[
                 { label: "Active Students", value: students >= 50000 ? "50K+" : `${students.toLocaleString()}+` },
                 { label: "Mock Tests", value: mocks >= 12000 ? "12K+" : `${mocks.toLocaleString()}+` },
@@ -167,8 +163,8 @@ export default function Home() {
                 { label: "AI Study Plans", value: "25K+" }
               ].map((stat) => (
                 <div key={stat.label} className="flex flex-col items-center">
-                  <span className="text-2xl font-black text-slate-900">{stat.value}</span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">{stat.label}</span>
+                  <span className="text-xl font-black text-slate-900">{stat.value}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{stat.label}</span>
                 </div>
               ))}
             </div>
@@ -177,56 +173,56 @@ export default function Home() {
       </section>
 
       {/* ── FEATURES ── */}
-      <section className="py-14 md:py-20 px-4 md:px-8 max-w-6xl mx-auto">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-3">Everything you need to crack your exam</h2>
+      <section className="py-10 md:py-14 px-4 md:px-8 max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-2">Everything you need to crack your exam</h2>
           <p className="text-slate-500 text-sm font-medium max-w-lg mx-auto">Powerful tools built specifically for competitive exam preparation.</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-5">
+        <div className="grid md:grid-cols-3 gap-4">
           {features.map((f) => (
             <div
               key={f.title}
-              className="group p-6 rounded-xl bg-white border border-slate-100 hover:border-blue-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
+              className="group p-5 rounded-xl bg-white border border-slate-100 hover:border-blue-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+              style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}
             >
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110"
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110"
                 style={{ background: f.iconBg }}
               >
-                <f.icon className="h-6 w-6" style={{ color: f.iconColor }} />
+                <f.icon className="h-5 w-5" style={{ color: f.iconColor }} />
               </div>
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-base font-black text-slate-900">{f.title}</h3>
+              <div className="flex items-center gap-2 mb-1.5">
+                <h3 className="text-sm font-black text-slate-900">{f.title}</h3>
                 {f.badge && (
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: "#1a73e8" }}>{f.badge}</span>
+                  <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full text-white" style={{ background: "#1a73e8" }}>{f.badge}</span>
                 )}
               </div>
-              <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+              <p className="text-xs text-slate-500 leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── WHY CHOOSE US ── */}
-      <section className="py-14 md:py-20 px-4 md:px-8" style={{ background: "#F0F2F8" }}>
+      <section className="py-10 md:py-14 px-4 md:px-8" style={{ background: "#F0F2F8" }}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-3">Why students trust us</h2>
+          <div className="text-center mb-6">
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-2">Why students trust us</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { icon: CheckCircle2, label: "Exam Pattern Mocks", color: "#1a73e8" },
               { icon: BarChart3, label: "Deep Analytics", color: "#16a34a" },
               { icon: Bot, label: "AI Study Plans", color: "#7c3aed" },
               { icon: Shield, label: "1M+ Students", color: "#ea580c" },
             ].map(item => (
-              <div key={item.label} className="bg-white rounded-xl p-5 flex flex-col items-center text-center gap-3 border border-slate-100"
-                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: item.color + "14" }}>
-                  <item.icon className="h-5 w-5" style={{ color: item.color }} />
+              <div key={item.label} className="bg-white rounded-xl p-4 flex flex-col items-center text-center gap-2 border border-slate-100"
+                style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: item.color + "14" }}>
+                  <item.icon className="h-4 w-4" style={{ color: item.color }} />
                 </div>
-                <span className="text-sm font-bold text-slate-800">{item.label}</span>
+                <span className="text-xs font-bold text-slate-800">{item.label}</span>
               </div>
             ))}
           </div>
@@ -234,20 +230,20 @@ export default function Home() {
       </section>
 
       {/* ── CTA STRIP ── */}
-      <section className="py-14 md:py-20 px-4 md:px-8">
+      <section className="py-10 md:py-14 px-4 md:px-8">
         <div className="max-w-3xl mx-auto text-center">
           <div
-            className="rounded-2xl p-10 md:p-14 text-white relative overflow-hidden"
+            className="rounded-2xl p-8 md:p-10 text-white relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, #1a73e8, #0047cc)" }}
           >
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-            <h2 className="text-2xl md:text-3xl font-black mb-3 relative">Start your free preparation today</h2>
-            <p className="text-blue-100 text-sm font-medium mb-7 relative max-w-md mx-auto">
+            <h2 className="text-xl md:text-2xl font-black mb-2 relative">Start your free preparation today</h2>
+            <p className="text-blue-100 text-sm font-medium mb-5 relative max-w-md mx-auto">
               Join 50,000+ students who are already cracking competitive exams with us.
             </p>
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 h-12 px-8 rounded-lg font-bold text-sm bg-white hover:bg-blue-50 transition-all"
+              className="inline-flex items-center gap-2 h-10 px-7 rounded-lg font-bold text-sm bg-white hover:bg-blue-50 transition-all"
               style={{ color: "#1a73e8" }}
             >
               Get Started Free <ArrowRight className="h-4 w-4" />

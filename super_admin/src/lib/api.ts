@@ -4,7 +4,7 @@
  */
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 
-    (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    (process.env.NODE_ENV === 'development'
         ? 'http://localhost:4000/api'
         : 'https://eduhub-backend.onrender.com/api');
 
@@ -29,6 +29,10 @@ async function request<T = any>(method: string, path: string, options: { body?: 
         if (queryString) {
             url += (url.includes('?') ? '&' : '?') + queryString;
         }
+    }
+
+    if (typeof window === 'undefined' && url.includes('://localhost:')) {
+        url = url.replace('://localhost:', '://127.0.0.1:');
     }
 
     const res = await fetch(url, {

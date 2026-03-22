@@ -111,7 +111,7 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-View-Id', 'X-Org-Id', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-View-Id', 'X-Org-Id', 'X-Requested-With', 'Cache-Control', 'Pragma'],
 }));
 
 // Rate Limiter — general API

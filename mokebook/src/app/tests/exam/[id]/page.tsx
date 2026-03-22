@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, Menu, Maximize, Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isAuthenticated } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 // TCS iON standard palette shapes
@@ -71,6 +71,7 @@ export default function ExamPage() {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [examError, setExamError] = useState<string | null>(null);
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isReady, setIsReady] = useState(false);
@@ -79,6 +80,14 @@ export default function ExamPage() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [displayName, setDisplayName] = useState("Student");
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+
+  // Auth guard — redirect to login if no token
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace("/login");
+    }
+  }, [router]);
 
   // Fetch questions and start attempt
   useEffect(() => {
@@ -118,8 +127,9 @@ export default function ExamPage() {
         setIsReady(true);
       } catch (err: any) {
         console.error("Failed to load exam:", err);
-        // Fallback: show an error state (questions will be empty)
+        // Fallback: show an error state
         setTestName("Error — Could not load test");
+        setExamError(err.message || "Could not load test. Unknown error.");
         setIsReady(true);
       } finally {
         setLoading(false);
@@ -211,9 +221,21 @@ export default function ExamPage() {
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
+
+    // Verify token before submitting
+    if (!isAuthenticated()) {
+      toast({
+        variant: "destructive",
+        title: "Session Expired",
+        description: "Your session has expired. Please log in again.",
+      });
+      router.push("/login");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // Build answers array
+      // Build answers array — include all questions, even unanswered ones
       const answers = questions.map((q, i) => ({
         questionId: q.id,
         selectedOptions: qState[i]?.optionId ? [qState[i].optionId!] : [],
@@ -226,24 +248,27 @@ export default function ExamPage() {
 
       if (res.success && res.data) {
         toast({
-          title: "Test Submitted",
-          description: "Your test has been submitted successfully.",
+          title: "✅ Test Submitted",
+          description: "Your test has been submitted successfully!",
         });
-        // Use router.push for better SPA feel
-        const targetId = res.data.id || res.data.attemptId;
-        router.push(`/tests/results/${targetId}`);
+        // Handle both id and attemptId fields in the response
+        const targetId = res.data.attemptId || res.data.id;
+        if (targetId) {
+          router.push(`/tests/results/${targetId}`);
+        } else {
+          router.push("/tests");
+        }
       } else {
-        throw new Error(res.message || "Failed to submit test");
+        throw new Error(res.message || "Failed to submit test. Please try again.");
       }
     } catch (err: any) {
       console.error("Submit failed:", err);
+      // Do NOT auto-redirect on error — let user retry
       toast({
         variant: "destructive",
         title: "Submission Failed",
-        description: err.message || "There was an error submitting your test. Returning to dashboard.",
+        description: err.message || "There was an error submitting your test. Please try again.",
       });
-      // Redirect to dashboard as a last resort
-      router.push("/tests");
     } finally {
       setSubmitting(false);
     }
@@ -262,6 +287,22 @@ export default function ExamPage() {
       <div className="flex flex-col items-center justify-center h-screen bg-[#f0f4f7]">
         <Loader2 className="h-10 w-10 animate-spin text-orange-500 mb-4" />
         <p className="text-slate-600 font-semibold text-sm">Loading questions...</p>
+      </div>
+    );
+  }
+
+  if (examError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#f0f4f7] space-y-4">
+        <AlertTriangle className="h-12 w-12 text-amber-500" />
+        <p className="font-bold text-slate-700 text-lg">Cannot start test</p>
+        <p className="text-slate-500 text-sm max-w-md text-center">{examError}</p>
+        <button
+          onClick={() => router.push('/tests')}
+          className="mt-4 px-6 py-2 bg-gray-800 text-white rounded text-sm font-semibold hover:bg-gray-700"
+        >
+          Go Back
+        </button>
       </div>
     );
   }
@@ -514,7 +555,7 @@ export default function ExamPage() {
               <button
                 className="w-full text-white text-[13px] font-semibold py-2.5 rounded-sm shadow-sm opacity-90 hover:opacity-100 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{ backgroundColor: brandColor }}
-                onClick={handleSubmit}
+                onClick={() => setShowSubmitModal(true)}
                 disabled={submitting}
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -524,6 +565,91 @@ export default function ExamPage() {
           </div>
         </div>
       </div>
+
+      {/* SUBMISSION MODAL */}
+      {showSubmitModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-[90%] max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-white text-lg font-bold">Submit Your Test</h2>
+              <button onClick={() => setShowSubmitModal(false)} className="text-slate-300 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-sm text-slate-500 mb-6">Please review your section-wise attempt summary before final submission.</p>
+              
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-[#f8fafc] text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
+                    <tr>
+                      <th className="px-5 py-3">Section</th>
+                      <th className="px-5 py-3 text-center">Questions</th>
+                      <th className="px-5 py-3 text-center text-emerald-600">Answered</th>
+                      <th className="px-5 py-3 text-center text-rose-500">Not Answered</th>
+                      <th className="px-5 py-3 text-center text-purple-600">Marked</th>
+                      <th className="px-5 py-3 text-center text-slate-400">Not Visited</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {(() => {
+                      const sMap: Record<string, { total: number, answered: number, notAnswered: number, marked: number, notVisited: number }> = {};
+                      questions.forEach((q, i) => {
+                        const sec = q.section || "General";
+                        if (!sMap[sec]) sMap[sec] = { total: 0, answered: 0, notAnswered: 0, marked: 0, notVisited: 0 };
+                        sMap[sec].total++;
+                        
+                        const st = qState[i]?.status || "not_visited";
+                        if (st === "answered" || st === "marked_answered") {
+                          sMap[sec].answered++;
+                        } else if (st === "not_answered") {
+                          sMap[sec].notAnswered++;
+                        } else if (st === "marked") {
+                          sMap[sec].marked++;
+                        } else {
+                          sMap[sec].notVisited++;
+                        }
+                      });
+                      
+                      return Object.entries(sMap).map(([name, data]) => (
+                        <tr key={name} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-5 py-3.5 font-medium text-slate-800">{name}</td>
+                          <td className="px-5 py-3.5 text-center font-semibold text-slate-700">{data.total}</td>
+                          <td className="px-5 py-3.5 text-center font-bold text-emerald-600 bg-emerald-50/50 rounded-sm">{data.answered}</td>
+                          <td className="px-5 py-3.5 text-center font-bold text-rose-500 bg-rose-50/50 rounded-sm">{data.notAnswered}</td>
+                          <td className="px-5 py-3.5 text-center font-bold text-purple-600 bg-purple-50/50 rounded-sm">{data.marked}</td>
+                          <td className="px-5 py-3.5 text-center font-bold text-slate-400">{data.notVisited}</td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+              
+              <div className="mt-8 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setShowSubmitModal(false)}
+                  className="px-6 py-2.5 rounded-lg text-sm font-semibold text-slate-600 border border-slate-300 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSubmitModal(false);
+                    handleSubmit();
+                  }}
+                  className="px-8 py-2.5 rounded-lg text-sm font-bold text-white shadow-md hover:shadow-lg transition-all"
+                  style={{ backgroundColor: brandColor }}
+                  disabled={submitting}
+                >
+                  {submitting ? "Submitting..." : "Confirm Submit"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@
  */
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 
-    (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    (process.env.NODE_ENV === 'development'
         ? 'http://localhost:4000/api'
         : 'https://eduhub-backend.onrender.com/api');
 
@@ -16,7 +16,13 @@ function getToken(): string {
 
 async function request<T = any>(method: string, path: string, body?: any): Promise<T> {
     const token = getToken();
-    const res = await fetch(`${BACKEND_URL}${path}`, {
+
+    let url = `${BACKEND_URL}${path}`;
+    if (typeof window === 'undefined' && url.includes('://localhost:')) {
+        url = url.replace('://localhost:', '://127.0.0.1:');
+    }
+
+    const res = await fetch(url, {
         method,
         headers: {
             'Content-Type': 'application/json',

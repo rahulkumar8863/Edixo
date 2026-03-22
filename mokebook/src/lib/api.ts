@@ -1,5 +1,5 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  (process.env.NODE_ENV === 'development'
     ? "http://localhost:4000/api"
     : "https://eduhub-backend.onrender.com/api");
 export const ORG_ID = process.env.NEXT_PUBLIC_ORG_ID || "GK-ORG-00001";
@@ -9,34 +9,50 @@ export const getCookie = (name: string) => {
   if (typeof document === 'undefined') return null;
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  if (parts.length === 2) return parts.pop()?.split(';').shift() ?? null;
   return null;
 };
 
-// Helper for authorized API calls
+/** Returns true if a valid token cookie exists */
+export const isAuthenticated = () => {
+  const token = getCookie('token');
+  return !!token && token.length > 10;
+};
+
+/** Authorized API fetch — throws if unauthorized or request fails */
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const token = getCookie('token');
   
   const headers = new Headers(options.headers || {});
   headers.set('Content-Type', 'application/json');
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  
-  // For GET requests, we can append orgId to URL if not present. 
-  // For now, passing X-Org-Id header is cleaner if backend supports it.
   headers.set('X-Org-Id', ORG_ID);
 
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  } else if (options.method && options.method.toUpperCase() !== 'GET') {
+    // Warn for write operations without a token — auth middleware will reject them anyway
+    console.warn(`[apiFetch] No auth token found for ${options.method} ${endpoint}`);
+  }
 
-  const res = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 
-  const data = await res.json();
+  // Fix Node.js 18+ failing to resolve localhost (prefers IPv6 ::1, but server listens on IPv4)
+  if (typeof window === 'undefined' && url.includes('://localhost:')) {
+    url = url.replace('://localhost:', '://127.0.0.1:');
+  }
+
+  const res = await fetch(url, { ...options, headers });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`Server returned non-JSON response (status ${res.status})`);
+  }
+
   if (!res.ok) {
-    throw new Error(data.message || 'API Error');
+    const msg = data?.message || `Request failed with status ${res.status}`;
+    throw new Error(msg);
   }
   return data;
 };

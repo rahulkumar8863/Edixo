@@ -2,44 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { 
-  ChevronRight, 
-  Loader2,
-  ChevronLeft,
-  Info,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
-  HelpCircle,
-  BookOpen,
-  Sparkles,
-  User,
-  Clock,
-  Layout,
-  Trophy,
-  Globe,
-  PenLine,
-  PlayCircle
-} from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+
+const PaletteKey = [
+  { color: "#f0f0f0", border: "#ccc", textColor: "#333", label: "You have not visited the question yet" },
+  { color: "#d32f2f", border: "transparent", textColor: "#fff", label: "You have not answered the question." },
+  { color: "#2e8b57", border: "transparent", textColor: "#fff", label: "You have answered the question." },
+  { color: "#9c27b0", border: "transparent", textColor: "#fff", label: "You have NOT answered the question, but have marked the question for review." },
+  { color: "#9c27b0", border: "transparent", textColor: "#fff", label: "You have answered the question, marked it for review." },
+];
 
 export default function TestInstructionsPage() {
   const params = useParams();
   const router = useRouter();
   const [displayName, setDisplayName] = useState("Student");
-
   const [step, setStep] = useState(1);
   const [language, setLanguage] = useState("");
   const [declared, setDeclared] = useState(false);
@@ -47,7 +24,6 @@ export default function TestInstructionsPage() {
 
   const testId = params?.id ? String(params.id) : "demo-test";
 
-  // Fetch student name from API
   useEffect(() => {
     apiFetch("/students/me").then(res => {
       if (res.data?.name) setDisplayName(res.data.name);
@@ -55,272 +31,182 @@ export default function TestInstructionsPage() {
   }, []);
 
   const handleBegin = () => {
-    if (step === 1) {
-      setStep(2);
-      return;
-    } 
-    
+    if (step === 1) { setStep(2); return; }
     if (language && declared) {
       setIsNavigating(true);
-      setTimeout(() => {
-        window.location.href = `/tests/exam/${testId}`;
-      }, 300);
+      setTimeout(() => { window.location.href = `/tests/exam/${testId}`; }, 300);
     }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#F8FAFC] font-sans overflow-hidden selection:bg-primary/10">
-      {/* Premium Header */}
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-sm shrink-0 z-20">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 group cursor-pointer" onClick={() => router.push('/tests')}>
-             <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-105">
-                <span className="text-white font-black text-xs">M</span>
-             </div>
-             <span className="text-slate-900 font-black text-lg tracking-tight hidden sm:inline group-hover:text-primary transition-colors">Mockbook</span>
+    <div className="flex flex-col h-screen bg-white font-sans overflow-hidden" style={{ fontSize: 13 }}>
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 flex items-center justify-between px-4 h-11 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="cursor-pointer flex items-center gap-2" onClick={() => router.push("/tests")}>
+            <div className="w-7 h-7 bg-[#1a73e8] rounded flex items-center justify-center">
+              <span className="text-white font-black text-xs">M</span>
+            </div>
+            <span className="font-bold text-sm text-gray-800">Mockbook</span>
           </div>
-          <div className="h-6 w-px bg-slate-200 mx-2" />
-          <div className="flex flex-col">
-            <h1 className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-              Instructions Panel
-            </h1>
-            <p className="text-sm font-bold text-slate-700 truncate max-w-[200px] md:max-w-none">
-              Exam ID: {testId.toUpperCase()}
-            </p>
-          </div>
+          <span className="text-gray-300 text-xs">|</span>
+          <span className="text-gray-600 text-xs font-medium truncate max-w-xs">
+            {step === 1 ? "General Instructions" : "Test Instructions"}
+          </span>
         </div>
-        
-        <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
-           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Secure Exam Environment</span>
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-full bg-[#1a73e8] flex items-center justify-center text-white font-bold text-sm">
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+          <span className="text-sm font-semibold text-gray-700 hidden sm:inline">{displayName}</span>
         </div>
       </header>
 
-      {/* Main Content Layout */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        {/* Profile Sidebar */}
-        <aside className="w-full md:w-[280px] bg-white border-b md:border-r md:border-b-0 flex flex-row md:flex-col items-center gap-6 md:gap-0 p-6 md:p-10 shrink-0 z-10">
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#1a73e8] to-blue-400 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-            <Avatar className="h-16 w-16 md:h-32 md:w-32 rounded-full border-4 border-white shadow-2xl overflow-hidden relative z-10">
-              <AvatarFallback className="text-2xl md:text-5xl font-black bg-slate-100 text-slate-400 w-full h-full flex items-center justify-center">
-                {displayName.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-          
-          <div className="text-left md:text-center mt-0 md:mt-8 space-y-1">
-            <h3 className="text-lg md:text-xl font-black text-slate-900 leading-tight">
-              {displayName}
-            </h3>
-            <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">Authenticated Candidate</p>
-          </div>
-          
-          <div className="hidden md:flex flex-col w-full mt-10 space-y-3">
-             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-                <ShieldCheck className="h-5 w-5 text-emerald-500" />
-                <div className="flex flex-col">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Verified</span>
-                   <span className="text-xs font-bold text-slate-700">Student Account</span>
-                </div>
-             </div>
-             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-                <Clock className="h-5 w-5 text-blue-500" />
-                <div className="flex flex-col">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Auto Timer</span>
-                   <span className="text-xs font-bold text-slate-700">Server Synced</span>
-                </div>
-             </div>
-          </div>
-        </aside>
-
-        {/* Content Area */}
-        <main className="flex-1 bg-[#F8FAFC] overflow-y-auto p-6 md:p-10 relative">
-          <div className="max-w-4xl mx-auto">
-            {step === 1 ? (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
-                    <BookOpen className="h-3 w-3" /> Step 01 / 02
+      <div className="flex flex-1 overflow-hidden">
+        {/* Main content */}
+        <div className="flex-1 overflow-y-auto">
+          {step === 1 ? (
+            <div className="p-6 max-w-3xl" style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <p className="font-bold text-gray-900 mb-3">General Instructions:</p>
+              <ol className="list-decimal pl-5 space-y-2.5 text-gray-700">
+                <li>
+                  The clock will be set at the server. The countdown timer at the top right corner of screen will display the remaining time available for you to complete the examination. When the timer reaches zero, the examination will end by itself. You need not terminate the examination or submit your paper.
+                </li>
+                <li>
+                  The Question Palette displayed on the right side of screen will show the status of each question using one of the following symbols:
+                  <div className="mt-3 space-y-2">
+                    {PaletteKey.map((p, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div
+                          className="w-7 h-7 rounded-sm flex items-center justify-center font-bold text-xs flex-shrink-0"
+                          style={{ background: p.color, border: `1px solid ${p.border}`, color: p.textColor }}
+                        >
+                          {i + 1}
+                        </div>
+                        <span className="text-gray-600">{p.label}</span>
+                      </div>
+                    ))}
                   </div>
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">General Instructions</h2>
-                  <p className="text-slate-500 font-medium">Please read these rules carefully before starting the exam.</p>
-                </div>
+                  <p className="mt-3 text-gray-600">
+                    The <strong>Mark For Review</strong> status simply indicates you would like to look at that question again. If a question is answered but marked for review, the answer will be considered for evaluation unless modified.
+                  </p>
+                </li>
+                <li>
+                  <strong>Navigating to a Question:</strong>
+                  <ol className="list-decimal pl-4 mt-1.5 space-y-1">
+                    <li>To answer a question, do the following:
+                      <ol className="list-decimal pl-4 mt-1 space-y-1">
+                        <li>Click on the question number in the Question Palette to go to that question directly. This does NOT save your current answer.</li>
+                        <li>Click on <strong>Save &amp; Next</strong> to save your answer and go to the next question.</li>
+                        <li>Click on <strong>Mark for Review &amp; Next</strong> to save, mark for review, and go to the next question.</li>
+                      </ol>
+                    </li>
+                  </ol>
+                  <p className="mt-2 text-gray-600">Note: Your answer will not be saved if you navigate without clicking Save &amp; Next.</p>
+                  <p className="mt-2 text-gray-600">You can view all questions by clicking the <strong>Question Paper</strong> button.</p>
+                </li>
+                <li>
+                  <strong>Answering a Question:</strong>
+                  <ol className="list-decimal pl-4 mt-1.5 space-y-1">
+                    <li>Choose one answer from the 4 options (A,B,C,D), click the bubble before the chosen option.</li>
+                    <li>To deselect, click the same bubble again or click <strong>Clear Response</strong>.</li>
+                    <li>To change your answer, click on another option.</li>
+                    <li>To save your answer, you MUST click <strong>Save &amp; Next</strong>.</li>
+                  </ol>
+                </li>
+                <li>Sections are displayed on the top bar. Questions in a Section can be viewed by clicking on the section name.</li>
+                <li>After Save &amp; Next on the last question in a Section, you will be taken to the first question of the next Section.</li>
+                <li>You can move the cursor over a Section name to view the answering status for that Section.</li>
+              </ol>
+            </div>
+          ) : (
+            <div className="p-6 max-w-2xl" style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <p className="font-bold text-gray-900 mb-3">Read the following instructions carefully.</p>
+              <ol className="list-decimal pl-5 space-y-2 text-gray-700">
+                <li>The test contains questions.</li>
+                <li>Each question has 4 options out of which only one is correct.</li>
+                <li>You have to finish the test in the allotted time.</li>
+                <li>You will be awarded marks for each correct answer and marks will be deducted for each wrong answer.</li>
+                <li>There is no negative marking for unattempted questions.</li>
+                <li>You can write this test only once. Complete the test before you submit or close the browser.</li>
+              </ol>
 
-                <div className="grid gap-6">
-                   <Card className="rounded-3xl border-slate-100 shadow-sm p-6 md:p-8 space-y-6">
-                      <div className="flex items-start gap-4">
-                         <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1a73e8] flex items-center justify-center font-bold text-sm shrink-0">1</div>
-                         <p className="text-sm font-medium text-slate-600 leading-relaxed pt-1">The clock will be set at the server. The countdown timer at the top right corner of screen will display the remaining time available for you to complete the examination.</p>
-                      </div>
-
-                      <div className="flex items-start gap-4">
-                         <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1a73e8] flex items-center justify-center font-bold text-sm shrink-0">2</div>
-                         <div className="space-y-4 pt-1">
-                            <p className="text-sm font-medium text-slate-600 leading-relaxed">The Question Palette displayed on the right side of screen will show the status of each question using the following symbols:</p>
-                            
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                               {[
-                                 { id: '01', color: 'bg-white text-slate-400 border-slate-200', label: 'Not Visited', desc: 'You have not visited the question yet.' },
-                                 { id: '02', color: 'bg-red-500 text-white border-transparent', label: 'Not Answered', desc: 'You have visited but not answered.' },
-                                 { id: '03', color: 'bg-emerald-500 text-white border-transparent', label: 'Answered', desc: 'You have answered the question.' },
-                                 { id: '04', color: 'bg-indigo-500 text-white border-transparent', label: 'Review', desc: 'Marked for review and not answered.' }
-                               ].map(s => (
-                                 <div key={s.id} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50/50 border border-slate-100 hover:bg-white transition-colors">
-                                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shadow-sm border", s.color)}>
-                                       {s.id}
-                                    </div>
-                                    <div className="flex flex-col">
-                                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{s.label}</span>
-                                       <span className="text-[11px] font-bold text-slate-600 leading-tight">{s.desc}</span>
-                                    </div>
-                                 </div>
-                               ))}
-                            </div>
-                         </div>
-                      </div>
-
-                      <div className="flex items-start gap-4">
-                         <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1a73e8] flex items-center justify-center font-bold text-sm shrink-0">3</div>
-                         <p className="text-sm font-medium text-slate-600 leading-relaxed pt-1">You can click on the question number in the palette to go directly to that question. Click on "Save & Next" to save your answer for the current question.</p>
-                      </div>
-                   </Card>
-                </div>
+              <div className="mt-5">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Choose your default language:</label>
+                <select
+                  className="border border-gray-300 rounded text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:border-[#1a73e8] w-40"
+                  value={language}
+                  onChange={e => setLanguage(e.target.value)}
+                >
+                  <option value="">-- Select --</option>
+                  <option value="english">English</option>
+                  <option value="hindi">Hindi</option>
+                </select>
+                {!language && (
+                  <p className="text-red-500 text-xs mt-1">Please select a language to continue.</p>
+                )}
               </div>
-            ) : (
-              <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
-                    <Sparkles className="h-3 w-3" /> Step 02 / 02
-                  </div>
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Final Declaration</h2>
-                  <p className="text-slate-500 font-medium">Verify your details and choose your preferred language.</p>
-                </div>
 
-                <div className="grid gap-8">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="p-6 rounded-3xl bg-white border border-slate-200/60 shadow-sm space-y-4">
-                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-                               <Clock className="h-5 w-5" />
-                            </div>
-                            <h4 className="font-black text-slate-900 uppercase tracking-tight text-sm">Test Duration</h4>
-                         </div>
-                         <p className="text-3xl font-black text-slate-900">35 <span className="text-lg text-slate-400">Minutes</span></p>
-                      </div>
-                      <div className="p-6 rounded-3xl bg-white border border-slate-200/60 shadow-sm space-y-4">
-                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
-                               <Trophy className="h-5 w-5" />
-                            </div>
-                            <h4 className="font-black text-slate-900 uppercase tracking-tight text-sm">Max Marks</h4>
-                         </div>
-                         <p className="text-3xl font-black text-slate-900">40 <span className="text-lg text-slate-400">Points</span></p>
-                      </div>
-                   </div>
-
-                   <Card className="rounded-[2.5rem] border-slate-100 shadow-sm p-8 md:p-10 space-y-10">
-                      <div className="space-y-6">
-                         <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                            <div className="flex items-center gap-3">
-                               <div className="p-2 rounded-xl bg-slate-100 text-slate-600">
-                                  <Globe className="h-4 w-4" />
-                               </div>
-                               <span className="text-sm font-black text-slate-900 uppercase tracking-tight">Default Language</span>
-                            </div>
-                            <Select value={language} onValueChange={setLanguage}>
-                               <SelectTrigger className="w-full sm:w-[220px] h-12 bg-slate-50 border-transparent rounded-2xl text-sm font-bold focus:ring-primary/20 transition-all">
-                                  <SelectValue placeholder="Select Language" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-slate-100">
-                                  <SelectItem value="english" className="rounded-xl font-bold py-3">English</SelectItem>
-                                  <SelectItem value="hindi" className="rounded-xl font-bold py-3">Hindi</SelectItem>
-                                </SelectContent>
-                            </Select>
-                         </div>
-                         
-                         <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-start gap-3">
-                            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                            <p className="text-[11px] font-bold text-amber-700 leading-relaxed">
-                               Note: Questions will appear in your chosen language by default. You can still toggle language for specific questions during the exam.
-                            </p>
-                         </div>
-                      </div>
-
-                      <div className="space-y-6 pt-6 border-t border-slate-100">
-                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-slate-100 text-slate-600">
-                               <PenLine className="h-4 w-4" />
-                            </div>
-                            <h4 className="font-black text-slate-900 uppercase tracking-tight text-sm">Candidate Declaration</h4>
-                         </div>
-                         
-                         <div className="relative group cursor-pointer" onClick={() => setDeclared(!declared)}>
-                            <div className={cn(
-                              "flex items-start gap-4 p-6 rounded-3xl border-2 transition-all duration-300",
-                              declared ? "bg-primary/5 border-primary shadow-lg shadow-primary/5" : "bg-white border-slate-100 hover:border-slate-200"
-                            )}>
-                               <Checkbox 
-                                 id="decl" 
-                                 checked={declared} 
-                                 className="mt-1 h-5 w-5 rounded-lg border-2"
-                               />
-                               <label htmlFor="decl" className="text-xs md:text-sm font-bold text-slate-600 leading-relaxed cursor-pointer select-none">
-                                  I have read and understood all the instructions. I agree that I will not use any prohibited gadget or unfair means. All my equipment (mouse, keyboard, monitor) is working correctly. I understand that any violation may lead to my disqualification.
-                               </label>
-                            </div>
-                         </div>
-                      </div>
-                   </Card>
-                </div>
+              <div className="mt-5">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Declaration:</p>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 w-4 h-4 accent-[#1a73e8]"
+                    checked={declared}
+                    onChange={e => setDeclared(e.target.checked)}
+                  />
+                  <span className="text-gray-600">
+                    I have read all the instructions carefully and have understood them. I agree not to cheat or use unfair means in this examination. The decision of Mockbook will be final in these matters and cannot be appealed.
+                  </span>
+                </label>
               </div>
-            )}
+            </div>
+          )}
+        </div>
+
+        {/* Right profile panel */}
+        <div className="w-36 flex-shrink-0 flex flex-col items-center pt-6 bg-white border-l border-gray-200">
+          <div className="w-20 h-20 rounded-full bg-[#1a73e8] flex items-center justify-center text-white font-bold text-3xl">
+            {displayName.charAt(0).toUpperCase()}
           </div>
-        </main>
+          <p className="text-sm font-semibold text-gray-700 mt-2 text-center px-2 leading-tight">{displayName}</p>
+        </div>
       </div>
 
-      {/* Footer Controls */}
-      <footer className="bg-white border-t px-8 py-6 flex items-center justify-between shrink-0 z-20">
-        <Button 
-          variant="ghost" 
-          className="text-slate-400 font-black text-xs uppercase tracking-widest h-12 px-6 rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-2 group"
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
+        <button
+          className="flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-[#1a73e8] transition-colors"
           onClick={() => step === 2 ? setStep(1) : router.back()}
           disabled={isNavigating}
         >
-          <ChevronLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-          {step === 1 ? "Exit Panel" : "Go Back"}
-        </Button>
-        
+          <ChevronLeft className="h-4 w-4" />
+          {step === 1 ? "Go to Tests" : "Previous"}
+        </button>
+
         {step === 1 ? (
-          <Button 
-            className="bg-slate-900 hover:bg-slate-800 text-white font-black h-14 px-10 text-xs tracking-widest rounded-2xl shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3"
+          <button
+            className="flex items-center gap-1 px-5 py-2 text-sm font-semibold bg-[#1a73e8] text-white rounded hover:bg-[#1557b0] transition-colors"
             onClick={() => setStep(2)}
           >
-            NEXT STEP <ChevronRight className="h-4 w-4" />
-          </Button>
+            Next <ChevronRight className="h-4 w-4" />
+          </button>
         ) : (
-          <Button 
-            className={cn(
-              "h-16 px-14 text-sm font-black tracking-widest rounded-2xl transition-all shadow-2xl flex items-center gap-4",
-              declared && language 
-                ? "bg-primary hover:bg-primary/90 text-white shadow-primary/30 hover:-translate-y-1 active:scale-95" 
-                : "bg-slate-100 text-slate-300 cursor-not-allowed shadow-none"
-            )}
+          <button
+            className={`px-6 py-2 text-sm font-semibold rounded transition-colors ${
+              declared && language
+                ? "bg-[#1a73e8] text-white hover:bg-[#1557b0]"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
             disabled={!declared || !language || isNavigating}
             onClick={handleBegin}
           >
-            {isNavigating ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                STARTING SECURE SESSION...
-              </>
-            ) : (
-              <>
-                I AM READY TO BEGIN
-                <PlayCircle className="h-5 w-5" />
-              </>
-            )}
-          </Button>
+            {isNavigating
+              ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Starting...</span>
+              : "I am ready to begin"
+            }
+          </button>
         )}
       </footer>
     </div>

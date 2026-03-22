@@ -118,13 +118,18 @@ router.post('/:id/attempt', async (req, res, next) => {
             where: { studentId: req.user.studentId },
         });
 
-        // Check max attempts
-        const existingAttempts = await prisma.testAttempt.count({
-            where: { testId: test.id, studentId: student.id, status: 'SUBMITTED' },
-        });
-        if (existingAttempts >= test.maxAttempts) {
-            throw new AppError(`Maximum attempts (${test.maxAttempts}) reached`, 400);
+        // Check max attempts (Disabled for unlimited attempts feature)
+        /*
+        const maxAllowed = test.maxAttempts || 0;
+        if (maxAllowed > 0) {
+            const existingAttempts = await prisma.testAttempt.count({
+                where: { testId: test.id, studentId: student.id, status: 'SUBMITTED' },
+            });
+            if (existingAttempts >= maxAllowed) {
+                throw new AppError(`Maximum attempts (${maxAllowed}) reached`, 400);
+            }
         }
+        */
 
         const attempt = await prisma.testAttempt.create({
             data: { testId: test.id, studentId: student.id },

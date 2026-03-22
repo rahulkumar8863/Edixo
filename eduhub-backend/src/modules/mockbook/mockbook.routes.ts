@@ -191,7 +191,49 @@ router.get('/categories/:id', async (req, res, next) => {
             }
         });
         if (!category) return res.status(404).json({ success: false, message: 'Series not found' });
-        res.json({ success: true, data: category });
+
+        let submittedAttempts: any[] = [];
+        let inProgressAttempts: any[] = [];
+        const user = (req as any).user;
+        if (user?.id || user?.userId) {
+            const userId = user.id || user.userId;
+            const student = await prisma.student.findFirst({ where: { userId: userId as string } });
+            if (student) {
+                const allAttempts = await prisma.testAttempt.findMany({
+                    where: { studentId: student.id, status: { in: ['SUBMITTED', 'IN_PROGRESS'] } },
+                    select: { testId: true, status: true }
+                });
+                
+                allAttempts.forEach(a => {
+                    if (a.status === 'SUBMITTED') submittedAttempts.push(a);
+                    else if (a.status === 'IN_PROGRESS') inProgressAttempts.push(a);
+                });
+            }
+        }
+
+        const attemptMap = submittedAttempts.reduce((acc: Record<string, number>, curr) => {
+            acc[curr.testId] = (acc[curr.testId] || 0) + 1;
+            return acc;
+        }, {});
+
+        const inProgressMap = inProgressAttempts.reduce((acc: Record<string, number>, curr) => {
+            acc[curr.testId] = (acc[curr.testId] || 0) + 1;
+            return acc;
+        }, {});
+
+        const formattedCategory = {
+            ...category,
+            subCategories: category.subCategories.map(sc => ({
+                ...sc,
+                mockTests: sc.mockTests.map((test: any) => ({
+                    ...test,
+                    attempts: attemptMap[test.id] || attemptMap[test.testId] || 0,
+                    inProgressAttempts: inProgressMap[test.id] || inProgressMap[test.testId] || 0
+                }))
+            }))
+        };
+
+        res.json({ success: true, data: formattedCategory });
     } catch (err) { next(err); }
 });
 
@@ -465,7 +507,8 @@ router.get('/tests/:testId/my-attempts', authenticate, async (req, res, next) =>
         const test = await prisma.mockTest.findFirst({ where: { OR: [{ testId: testIdParam }, { id: testIdParam }] } });
         if (!test) return res.status(404).json({ success: false, message: 'Test not found' });
 
-        const student = await prisma.student.findFirst({ where: { userId: user.id } });
+        const userId = user.userId || user.id;
+        const student = await prisma.student.findFirst({ where: { userId: userId as string } });
         if (!student) return res.status(403).json({ success: false, message: 'Not a student' });
 
         const attempts = await prisma.testAttempt.findMany({
@@ -489,7 +532,8 @@ router.post('/tests/:testId/attempts', authenticate, async (req, res, next) => {
         const test = await prisma.mockTest.findFirst({ where: { OR: [{ testId: testIdParam }, { id: testIdParam }] } });
         if (!test) return res.status(404).json({ success: false, message: 'Test not found' });
 
-        const student = await prisma.student.findFirst({ where: { userId: user.id } });
+        const userId = user.userId || user.id;
+        const student = await prisma.student.findFirst({ where: { userId: userId as string } });
         if (!student) return res.status(403).json({ success: false, message: 'Student profile not found. Please register as a student.' });
 
         if (action === 'start') {
@@ -499,11 +543,12 @@ router.post('/tests/:testId/attempts', authenticate, async (req, res, next) => {
             });
             if (existing) return res.json({ success: true, data: existing });
 
-            // Check maxAttempts limit
+            // Check maxAttempts limit (Disabled for unlimited attempts feature)
+            /*
             const completedCount = await prisma.testAttempt.count({
                 where: { testId: test.id, studentId: student.id, status: 'SUBMITTED' }
             });
-            const maxAllowed = test.maxAttempts || 1;
+            const maxAllowed = test.maxAttempts || 0; // 0 means unlimited
             if (maxAllowed > 0 && completedCount >= maxAllowed) {
                 return res.status(403).json({
                     success: false,
@@ -512,6 +557,7 @@ router.post('/tests/:testId/attempts', authenticate, async (req, res, next) => {
                     maxAttempts: maxAllowed,
                 });
             }
+            */
 
             const attempt = await prisma.testAttempt.create({
                 data: {
@@ -1237,14 +1283,23 @@ router.get('/admin/student-drilldown/:studentId', async (req, res, next) => {
 // GET /mockbook/analytics/student/:studentId/overall — student 30-day performance
 router.get('/analytics/student/:studentId/overall', async (req, res, next) => {
     try {
-        const studentId = req.params.studentId;
+        const studentIdParam = req.params.studentId;
         const days = parseInt(req.query.days as string) || 30;
         const dateFrom = new Date();
         dateFrom.setDate(dateFrom.getDate() - days);
 
+        const student = await prisma.student.findFirst({
+            where: { OR: [{ id: studentIdParam }, { studentId: studentIdParam }] },
+            select: { id: true, name: true, studentId: true }
+        });
+
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
+
         const attempts = await prisma.testAttempt.findMany({
             where: {
-                studentId,
+                studentId: student.id,
                 status: 'SUBMITTED',
                 submittedAt: { gte: dateFrom }
             },
@@ -1269,11 +1324,6 @@ router.get('/analytics/student/:studentId/overall', async (req, res, next) => {
                 accuracy: a.totalMarks ? ((a.score || 0) / a.totalMarks) * 100 : 0,
                 date: a.submittedAt
             };
-        });
-
-        const student = await prisma.student.findUnique({
-            where: { id: studentId },
-            select: { name: true, studentId: true }
         });
 
         const overallAccuracy = totalPossibleMarks > 0 ? (totalScore / totalPossibleMarks) * 100 : 0;
