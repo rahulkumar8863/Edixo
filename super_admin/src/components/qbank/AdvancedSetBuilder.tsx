@@ -134,20 +134,31 @@ export function AdvancedSetBuilder() {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
+        console.log("[AdvancedSetBuilder] Fetching options from:", `${API_URL}/qbank/filter-options`);
         const headers = getAuthHeaders();
         const res = await fetch(`${API_URL}/qbank/filter-options`, {
             headers
         });
         const result = await res.json();
+        console.log("[AdvancedSetBuilder] Filter Options Result:", result);
         if (result.success) {
-          setExams(result.data.exams);
-          setSubjects(result.data.subjects);
-          setYears(result.data.years);
-          setShifts(result.data.shifts);
+          setExams(result.data.exams || []);
+          setSubjects(result.data.subjects || []);
+          setYears(result.data.years || []);
+          setShifts(result.data.shifts || []);
           setSources(result.data.sources || []);
+          console.log("[AdvancedSetBuilder] Options set in state");
+        } else {
+          console.error("[AdvancedSetBuilder] Failed to fetch options:", result.message);
+          if (res.status === 401) {
+            toast.error("Session expired or unauthorized. Please log in again.");
+          } else {
+            toast.error(result.message || "Failed to load filter options");
+          }
         }
       } catch (err) {
-        console.error("Failed to fetch filter options", err);
+        console.error("[AdvancedSetBuilder] Error in fetchOptions:", err);
+        toast.error("Connection error. Please check if the backend is running.");
       }
     };
     fetchOptions();

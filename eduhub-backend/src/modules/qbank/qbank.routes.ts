@@ -670,6 +670,60 @@ router.get('/usage-logs', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// ─── GET /api/qbank/filter-options ──────────────────────────
+router.get('/filter-options', async (req, res, next) => {
+    try {
+        console.log('[QBank] Fetching filter-options for user:', req.user?.userId);
+        const [exams, subjects, years, shifts, sources] = await Promise.all([
+            prisma.question.groupBy({ where: { deletedAt: null }, by: ['exam'] }),
+            prisma.question.groupBy({ where: { deletedAt: null }, by: ['subjectName'] }),
+            prisma.question.groupBy({ where: { deletedAt: null }, by: ['year'] }),
+            prisma.question.groupBy({ where: { deletedAt: null }, by: ['section'] }),
+            prisma.question.groupBy({ where: { deletedAt: null, airtableTableName: { not: null } }, by: ['airtableTableName'] }),
+        ]);
+
+        const data = {
+            exams: exams.map(e => e.exam).filter(Boolean),
+            subjects: subjects.map(s => s.subjectName).filter(Boolean),
+            years: years.map(y => y.year).filter(y => y !== null),
+            shifts: shifts.map(s => s.section).filter(Boolean),
+            sources: sources.map(s => s.airtableTableName).filter(Boolean),
+        };
+
+        console.log('[QBank] Filter options found:', {
+            examCount: data.exams.length,
+            subjectCount: data.subjects.length,
+            yearCount: data.years.length,
+            shiftCount: data.shifts.length,
+            sourceCount: data.sources.length
+        });
+
+        res.json({
+            success: true,
+            data
+        });
+    } catch (err: any) {
+        console.error('[QBank] Error fetching filter-options:', err);
+        next(err);
+    }
+});
+
+// ─── GET /api/qbank/chapters ─────────────────────────────────
+router.get('/chapters', async (req, res, next) => {
+    try {
+        const { subject } = req.query;
+        if (!subject) return res.json({ success: true, data: [] });
+
+        const chapters = await prisma.question.findMany({
+            where: { subjectName: subject as string, deletedAt: null },
+            select: { chapterName: true },
+            distinct: ['chapterName'],
+        });
+
+        res.json({ success: true, data: chapters.map(c => c.chapterName).filter(Boolean) });
+    } catch (err) { next(err); }
+});
+
 // ─── GET /api/qbank/questions ────────────────────────────────
 router.get('/questions', async (req, res, next) => {
     try {
@@ -720,9 +774,25 @@ router.get('/questions', async (req, res, next) => {
         if (subject && subject !== 'all') where.subjectName = subject;
         if (chapter && chapter !== 'all') where.chapterName = chapter;
         if (year && year !== 'all') where.year = Number(year);
-        if (shift && shift !== 'all') where.shift = shift;
-        if (difficulty && difficulty !== 'all') where.difficulty = difficulty;
-        if (type && type !== 'all') where.type = type;
+        if (shift && shift !== 'all') where.section = shift;
+        
+        // Difficulty Mapping
+        if (difficulty && difficulty !== 'all') {
+            const diffMap: any = { 'easy': 'EASY', 'medium': 'MEDIUM', 'hard': 'HARD' };
+            where.difficulty = diffMap[difficulty as string] || difficulty;
+        }
+
+        // Type Mapping
+        if (type && type !== 'all') {
+            const typeMap: any = { 
+                'mcq': 'MCQ_SINGLE', 
+                'multi_select': 'MCQ_MULTIPLE', 
+                'true_false': 'TRUE_FALSE', 
+                'integer': 'FILL_IN_BLANK' 
+            };
+            where.type = typeMap[type as string] || type;
+        }
+
         if (source && source !== 'all') where.airtableTableName = source;
         if (search) {
             where.OR = [
@@ -740,19 +810,39 @@ router.get('/questions', async (req, res, next) => {
                     parsedFilters.forEach((f: any) => {
                         if (!f.field) return;
                         const numFields = ['year', 'syncCode', 'pointCost', 'usageCount', 'questionUniqueId'];
+                        
+                        // Handle field alias
+                        let field = f.field;
+                        if (field === 'shift') field = 'section';
+
                         if (f.operator === 'isEmpty') {
-                            where[f.field] = null;
+                            where[field] = null;
                         } else if (f.operator === 'isNotEmpty') {
-                            where[f.field] = { not: null };
+                            where[field] = { not: null };
                         } else if (f.value !== undefined && f.value !== '') {
                             let val = f.value;
-                            if (numFields.includes(f.field)) val = Number(val);
-                            if (f.operator === 'equals' || !f.operator) where[f.field] = val;
-                            else if (f.operator === 'not_equals') where[f.field] = { not: val };
-                            else if (f.operator === 'contains') where[f.field] = { contains: String(val), mode: 'insensitive' };
-                            else if (f.operator === 'doesNotContain') where[f.field] = { not: { contains: String(val), mode: 'insensitive' } };
-                            else if (f.operator === 'startsWith') where[f.field] = { startsWith: String(val), mode: 'insensitive' };
-                            else if (f.operator === 'endsWith') where[f.field] = { endsWith: String(val), mode: 'insensitive' };
+                            if (numFields.includes(field)) val = Number(val);
+                            
+                            // Map Difficulty and Type for dynamic filters
+                            if (field === 'difficulty') {
+                                const diffMap: any = { 'easy': 'EASY', 'medium': 'MEDIUM', 'hard': 'HARD' };
+                                val = diffMap[val as string] || val;
+                            } else if (field === 'type') {
+                                const typeMap: any = { 
+                                    'mcq': 'MCQ_SINGLE', 
+                                    'multi_select': 'MCQ_MULTIPLE', 
+                                    'true_false': 'TRUE_FALSE', 
+                                    'integer': 'FILL_IN_BLANK' 
+                                };
+                                val = typeMap[val as string] || val;
+                            }
+
+                            if (f.operator === 'equals' || !f.operator) where[field] = val;
+                            else if (f.operator === 'not_equals') where[field] = { not: val };
+                            else if (f.operator === 'contains') where[field] = { contains: String(val), mode: 'insensitive' };
+                            else if (f.operator === 'doesNotContain') where[field] = { not: { contains: String(val), mode: 'insensitive' } };
+                            else if (f.operator === 'startsWith') where[field] = { startsWith: String(val), mode: 'insensitive' };
+                            else if (f.operator === 'endsWith') where[field] = { endsWith: String(val), mode: 'insensitive' };
                         }
                     });
                 }
