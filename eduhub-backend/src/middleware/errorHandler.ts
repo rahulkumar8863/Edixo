@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../config/logger';
 import { ZodError } from 'zod';
+import { env } from '../config/env';
 
 export class AppError extends Error {
     statusCode: number;
@@ -58,7 +59,8 @@ export const errorHandler = (
     logger.error('Unhandled error:', err);
     res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: err.message || 'Internal server error',
+        stack: env.NODE_ENV === 'development' ? err.stack : undefined
     });
 };
 

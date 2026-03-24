@@ -51,6 +51,33 @@ export class AirtableService {
     }
 
     /**
+     * Fetch all tables in the base using Airtable Meta API
+     */
+    async fetchAirtableTables() {
+        logger.info(`Fetching tables list from Airtable Base: ${env.AIRTABLE_BASE_ID}`);
+        try {
+            // Note: Requires token with `schema.bases:read` permission
+            const response = await fetch(`https://api.airtable.com/v0/meta/bases/${env.AIRTABLE_BASE_ID}/tables`, {
+                headers: {
+                    'Authorization': `Bearer ${env.AIRTABLE_API_KEY}`
+                }
+            });
+            const data = await response.json() as any;
+            
+            if (!response.ok) {
+                if (response.status === 403) {
+                    throw new Error('Airtable Token missing "schema.bases:read" permission. Please enable it in Airtable Developer Hub.');
+                }
+                throw new Error(data.error?.message || 'Failed to fetch Airtable tables');
+            }
+            return data.tables; // Array of table objects { id, name, description, ... }
+        } catch (error) {
+            logger.error(`Error fetching tables from Airtable Base:`, error);
+            throw error;
+        }
+    }
+
+    /**
      * Fetch all records from Airtable
      */
     async fetchAirtableRecords(tableName: string) {

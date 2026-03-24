@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { airtableService } from './airtable.service';
 import { logger } from '../../config/logger';
+import { prisma } from '../../config/database';
+import { z } from 'zod';
 
 export const syncAirtableQuestions = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -20,6 +22,114 @@ export const syncAirtableQuestions = async (req: Request, res: Response, next: N
     } catch (error: any) {
         console.error('CRITICAL: Airtable sync failed:', error);
         logger.error('Airtable sync controller error:', error);
+        next(error);
+    }
+};
+
+export const getAirtableTables = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const tables = await airtableService.fetchAirtableTables();
+        res.json({ success: true, data: tables });
+    } catch (error: any) {
+        logger.error('Failed to fetch Airtable Meta tables:', error);
+        res.status(400).json({ success: false, message: error.message || 'Failed to fetch tables' });
+    }
+};
+
+export const getAirtableSyncFolders = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const orgId = req.query.orgId || req.headers['x-org-id'] || (req as any).user?.orgId;
+        const org = orgId ? await prisma.organization.findFirst({ where: { orgId: orgId as string } }) : null;
+
+        const folders = await prisma.qBankFolder.findMany({
+            where: {
+                description: 'AIRTABLE_SYNC',
+                OR: [
+                    { orgId: null },
+                    org ? { orgId: org.id } : {}
+                ].filter(x => Object.keys(x).length > 0)
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        
+        res.json({ success: true, data: folders });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const createAirtableSyncFolder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { name, airtableTableName, orgId } = req.body;
+        if (!name || !airtableTableName) {
+            return res.status(400).json({ success: false, message: 'Both name and airtableTableName are required' });
+        }
+
+        const org = orgId ? await prisma.organization.findFirst({ where: { orgId: orgId as string } }) : null;
+
+        const folder = await prisma.qBankFolder.create({
+            data: {
+                name,
+                slug: airtableTableName,
+                description: 'AIRTABLE_SYNC',
+                scope: 'ORG',
+                path: `/airtable/${airtableTableName}`,
+                orgId: org?.id || null
+            }
+        });
+
+        res.status(201).json({ success: true, data: folder, message: 'Airtable Sync Source added successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const renameAirtableSyncFolder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { name } = req.body;
+        if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+
+        const folder = await prisma.qBankFolder.update({
+            where: { id: req.params.id as string },
+            data: { name }
+        });
+        
+        res.json({ success: true, data: folder, message: 'Folder renamed successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const deleteAirtableSyncFolder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const folderId = req.params.id as string;
+        const folder = await prisma.qBankFolder.findUnique({ where: { id: folderId } });
+
+        if (!folder || folder.description !== 'AIRTABLE_SYNC') {
+            return res.status(404).json({ success: false, message: 'Folder not found or not an Airtable source' });
+        }
+
+        // Delete associated questions explicitly if desired, or leave them. Usually admin wants to clean up 
+        // to prevent duplicate or orphaned questions.
+        if (folder.slug) {
+            await prisma.questionOption.deleteMany({
+                where: { question: { airtableTableName: folder.slug } }
+            });
+            await prisma.attemptAnswer.deleteMany({
+                where: { question: { airtableTableName: folder.slug } }
+            });
+            await prisma.studentQuestionHistory.deleteMany({
+                where: { question: { airtableTableName: folder.slug } }
+            });
+            await prisma.question.deleteMany({
+                where: { airtableTableName: folder.slug }
+            });
+        }
+
+        await prisma.qBankFolder.delete({ where: { id: folderId } });
+        
+        res.json({ success: true, message: 'Airtable sync folder and associated local data removed successfully. Airtable data was untouched.' });
+    } catch (error) {
         next(error);
     }
 };
